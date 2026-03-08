@@ -1,0 +1,334 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="row">
+    {% if user_type == 'admin' %}
+        <!-- Admin Dashboard -->
+        <div class="col-lg-3 col-6">
+            <div class="small-box bg-info">
+                <div class="inner">
+                    <h3>{{ total_complaints|default:"0" }}</h3>
+                    <p>Total Complaints</p>
+                </div>
+                <div class="icon">
+                    <i class="fas fa-ticket-alt"></i>
+                </div>
+                <a href="{% url 'hostelapp:complaint_list' %}" class="small-box-footer">
+                    View all <i class="fas fa-arrow-circle-right"></i>
+                </a>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-6">
+            <div class="small-box bg-warning">
+                <div class="inner">
+                    <h3>{{ pending_complaints|default:"0" }}</h3>
+                    <p>Pending Complaints</p>
+                </div>
+                <div class="icon">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <a href="{% url 'hostelapp:complaint_list' %}?status=pending" class="small-box-footer">
+                    View pending <i class="fas fa-arrow-circle-right"></i>
+                </a>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-6">
+            <div class="small-box bg-success">
+                <div class="inner">
+                    <h3>{{ completed_complaints|default:"0" }}</h3>
+                    <p>Completed</p>
+                </div>
+                <div class="icon">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <a href="{% url 'hostelapp:complaint_list' %}?status=completed" class="small-box-footer">
+                    View completed <i class="fas fa-arrow-circle-right"></i>
+                </a>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-6">
+            <div class="small-box bg-danger">
+                <div class="inner">
+                    <h3>{{ total_students|default:"0" }}</h3>
+                    <p>Total Students</p>
+                </div>
+                <div class="icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <a href="{% url 'hostelapp:user_list' %}" class="small-box-footer">
+                    View users <i class="fas fa-arrow-circle-right"></i>
+                </a>
+            </div>
+        </div>
+        
+        <!-- Recent Complaints Table -->
+        <div class="col-md-12 mt-4">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Recent Complaints</h3>
+                    <div class="card-tools">
+                        <a href="{% url 'hostelapp:generate_report' %}" class="btn btn-success btn-sm">
+                            <i class="fas fa-chart-bar"></i> Generate Report
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <table class="table table-bordered table-striped">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Title</th>
+                                <th>Student</th>
+                                <th>Status</th>
+                                <th>Priority</th>
+                                <th>Date</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for complaint in recent_complaints %}
+                            <tr>
+                                <td>{{ complaint.id }}</td>
+                                <td>{{ complaint.title }}</td>
+                                <td>{{ complaint.student.username }}</td>
+                                <td>
+                                    <span class="badge badge-{% if complaint.status == 'completed' %}success{% elif complaint.status == 'pending' %}warning{% elif complaint.status == 'in_progress' %}info{% else %}secondary{% endif %}">
+                                        {{ complaint.get_status_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge badge-{% if complaint.priority == 'high' %}danger{% elif complaint.priority == 'medium' %}warning{% else %}info{% endif %}">
+                                        {{ complaint.get_priority_display }}
+                                    </span>
+                                </td>
+                                <td>{{ complaint.created_at|date:"M d, Y" }}</td>
+                                <td>
+                                    <a href="{% url 'hostelapp:complaint_detail' complaint.id %}" class="btn btn-info btn-sm">
+                                        <i class="fas fa-eye"></i> View
+                                    </a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="7" class="text-center">No complaints found</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+    {% elif user_type == 'student' %}
+        <!-- Student Dashboard -->
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">My Complaints</h3>
+                    <div class="card-tools">
+                        <a href="{% url 'hostelapp:create_complaint' %}" class="btn btn-success btn-sm">
+                            <i class="fas fa-plus"></i> New Complaint
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <div class="info-box">
+                                <span class="info-box-icon bg-warning"><i class="fas fa-clock"></i></span>
+                                <div class="info-box-content">
+                                    <span class="info-box-text">Pending</span>
+                                    <span class="info-box-number">{{ pending_complaints|default:"0" }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="info-box">
+                                <span class="info-box-icon bg-info"><i class="fas fa-spinner"></i></span>
+                                <div class="info-box-content">
+                                    <span class="info-box-text">In Progress</span>
+                                    <span class="info-box-number">{{ in_progress_complaints|default:"0" }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="info-box">
+                                <span class="info-box-icon bg-success"><i class="fas fa-check-circle"></i></span>
+                                <div class="info-box-content">
+                                    <span class="info-box-text">Completed</span>
+                                    <span class="info-box-number">{{ completed_complaints|default:"0" }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Title</th>
+                                <th>Status</th>
+                                <th>Priority</th>
+                                <th>Assigned To</th>
+                                <th>Date</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for complaint in my_complaints %}
+                            <tr>
+                                <td>{{ complaint.title }}</td>
+                                <td>
+                                    <span class="badge badge-{% if complaint.status == 'completed' %}success{% elif complaint.status == 'pending' %}warning{% elif complaint.status == 'in_progress' %}info{% else %}secondary{% endif %}">
+                                        {{ complaint.get_status_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge badge-{% if complaint.priority == 'high' %}danger{% elif complaint.priority == 'medium' %}warning{% else %}info{% endif %}">
+                                        {{ complaint.get_priority_display }}
+                                    </span>
+                                </td>
+                                <td>{{ complaint.assigned_to.get_full_name|default:complaint.assigned_to.username|default:"Not assigned" }}</td>
+                                <td>{{ complaint.created_at|date:"M d, Y" }}</td>
+                                <td>
+                                    <a href="{% url 'hostelapp:complaint_detail' complaint.id %}" class="btn btn-info btn-sm">
+                                        <i class="fas fa-eye"></i> View
+                                    </a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center">No complaints found. <a href="{% url 'hostelapp:create_complaint' %}">Create one now</a></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+    {% elif user_type == 'professional' %}
+        <!-- Professional Dashboard -->
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-info">
+                        <h3 class="card-title">Assigned Tasks</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="info-box mb-3">
+                            <span class="info-box-icon bg-warning"><i class="fas fa-tasks"></i></span>
+                            <div class="info-box-content">
+                                <span class="info-box-text">Assigned Tasks</span>
+                                <span class="info-box-number">{{ assigned_complaints|length|default:"0" }}</span>
+                            </div>
+                        </div>
+                        
+                        <table class="table table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>Title</th>
+                                    <th>Student</th>
+                                    <th>Priority</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for task in assigned_complaints %}
+                                <tr>
+                                    <td>{{ task.title }}</td>
+                                    <td>{{ task.student.username }}</td>
+                                    <td>
+                                        <span class="badge badge-{% if task.priority == 'high' %}danger{% elif task.priority == 'medium' %}warning{% else %}info{% endif %}">
+                                            {{ task.get_priority_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <a href="{% url 'hostelapp:complaint_detail' task.id %}" class="btn btn-info btn-sm">
+                                            <i class="fas fa-eye"></i> View
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center">No assigned tasks</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-success">
+                        <h3 class="card-title">In Progress</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="info-box mb-3">
+                            <span class="info-box-icon bg-info"><i class="fas fa-spinner"></i></span>
+                            <div class="info-box-content">
+                                <span class="info-box-text">In Progress</span>
+                                <span class="info-box-number">{{ in_progress_complaints|length|default:"0" }}</span>
+                            </div>
+                        </div>
+                        
+                        <table class="table table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>Title</th>
+                                    <th>Student</th>
+                                    <th>Started</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for task in in_progress_complaints %}
+                                <tr>
+                                    <td>{{ task.title }}</td>
+                                    <td>{{ task.student.username }}</td>
+                                    <td>{{ task.updated_at|date:"M d, Y" }}</td>
+                                    <td>
+                                        <a href="{% url 'hostelapp:complaint_detail' task.id %}" class="btn btn-info btn-sm">
+                                            <i class="fas fa-eye"></i> View
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center">No tasks in progress</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Completed Tasks</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="info-box mb-3">
+                            <span class="info-box-icon bg-success"><i class="fas fa-check-circle"></i></span>
+                            <div class="info-box-content">
+                                <span class="info-box-text">Total Completed</span>
+                                <span class="info-box-number">{{ completed_complaints|default:"0" }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

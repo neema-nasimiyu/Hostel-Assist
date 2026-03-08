@@ -1,0 +1,183 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Assign Complaint #{{ complaint.id }}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+<li class="breadcrumb-item"><a href="#">{{ complaint.student.user.get_full_name }}'s Complaint</a></li>
+<li class="breadcrumb-item active">Assign</li>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card card-primary">
+            <div class="card-header">
+                <h3 class="card-title">Assign Complaint to Specialist</h3>
+            </div>
+            <form method="post">
+                {% csrf_token %}
+                <div class="card-body">
+                    <!-- Complaint Summary -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="callout callout-info">
+                                <h5>Complaint Summary</h5>
+                                <p><strong>Title:</strong> {{ complaint.title }}</p>
+                                <p><strong>Type:</strong> {{ complaint.get_complaint_type_display }}</p>
+                                <p><strong>Priority:</strong>
+                                    {% if complaint.priority == 'emergency' %}
+                                        <span class="badge badge-danger">Emergency</span>
+                                    {% elif complaint.priority == 'high' %}
+                                        <span class="badge badge-warning">High</span>
+                                    {% elif complaint.priority == 'medium' %}
+                                        <span class="badge badge-info">Medium</span>
+                                    {% else %}
+                                        <span class="badge badge-success">Low</span>
+                                    {% endif %}
+                                </p>
+                                <p><strong>Description:</strong> {{ complaint.description|truncatechars:150 }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="id_assigned_to">Select Specialist</label>
+                        <select name="assigned_to" class="form-control" id="id_assigned_to" required>
+                            <option value="">Choose a specialist...</option>
+                            {% for specialist in form.assigned_to.field.queryset %}
+                                {% if specialist.specialist_type == complaint.complaint_type %}
+                                    <option value="{{ specialist.id }}"
+                                        {% if specialist.assigned_complaints.count > 2 %}disabled{% endif %}>
+                                        {{ specialist.user.get_full_name }} -
+                                        {{ specialist.get_specialist_type_display }}
+                                        ({{ specialist.assigned_complaints.count }} active jobs)
+                                        {% if not specialist.is_available %} - Currently Busy{% endif %}
+                                    </option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                        {% if form.assigned_to.errors %}
+                            <div class="text-danger">{{ form.assigned_to.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-group">
+                        <label for="id_priority">Priority</label>
+                        <select name="priority" class="form-control" id="id_priority">
+                            <option value="low" {% if complaint.priority == 'low' %}selected{% endif %}>Low</option>
+                            <option value="medium" {% if complaint.priority == 'medium' %}selected{% endif %}>Medium</option>
+                            <option value="high" {% if complaint.priority == 'high' %}selected{% endif %}>High</option>
+                            <option value="emergency" {% if complaint.priority == 'emergency' %}selected{% endif %}>Emergency</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="id_status">Status</label>
+                        <select name="status" class="form-control" id="id_status">
+                            <option value="assigned" selected>Assigned</option>
+                            <option value="pending">Pending</option>
+                            <option value="rejected">Rejected</option>
+                        </select>
+                        <small class="form-text text-muted">
+                            Changing status to "Assigned" will mark the complaint as assigned to the selected specialist.
+                        </small>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-check-circle"></i> Assign Complaint
+                    </button>
+                    <a href="{% url 'complaint_detail' complaint.id %}" class="btn btn-default float-right">
+                        <i class="fas fa-times"></i> Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <!-- Available Specialists Summary -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-info-circle mr-1"></i>
+                    Available Specialists
+                </h3>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th>Available</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for type_code, type_name in specialist_types %}
+                            <tr>
+                                <td>{{ type_name }}</td>
+                                <td>
+                                    <span class="badge badge-success">
+                                        {{ available_counts|get_item:type_code|default:"0" }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge badge-info">
+                                        {{ total_counts|get_item:type_code|default:"0" }}
+                                    </span>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Assignment Tips -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-lightbulb mr-1"></i>
+                    Assignment Tips
+                </h3>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled">
+                    <li class="mb-2">
+                        <i class="fas fa-check-circle text-success mr-1"></i>
+                        Match specialist type with complaint type
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-check-circle text-success mr-1"></i>
+                        Consider specialist's current workload
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-check-circle text-success mr-1"></i>
+                        Emergency complaints should be assigned immediately
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-check-circle text-success mr-1"></i>
+                        You can update priority if needed
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Highlight matching specialist types
+    $('#id_assigned_to option').each(function() {
+        if ($(this).text().includes('{{ complaint.get_complaint_type_display }}')) {
+            $(this).css('font-weight', 'bold');
+        }
+    });
+});
+</script>
+{% endblock %}

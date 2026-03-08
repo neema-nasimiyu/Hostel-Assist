@@ -1,0 +1,167 @@
+{% extends 'base.html' %}
+
+{% block title %}Login | Hostel Assist{% endblock %}
+
+{% block content %}
+<div class="login-box" style="margin: 5% auto; max-width: 500px;">
+    <div class="card card-outline card-primary">
+        <div class="card-header text-center">
+            <a href="#" class="h1"><b>Hostel</b> Management</a>
+        </div>
+        <div class="card-body">
+            <p class="login-box-msg">Sign in to access your dashboard</p>
+
+            <!-- Role Selection Tabs -->
+            <ul class="nav nav-pills nav-justified mb-4" id="roleTab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="student-tab" data-bs-toggle="pill" data-bs-target="#student" type="button" role="tab" aria-controls="student" aria-selected="true">
+                        <i class="fas fa-user-graduate"></i> Student
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="specialist-tab" data-bs-toggle="pill" data-bs-target="#specialist" type="button" role="tab" aria-controls="specialist" aria-selected="false">
+                        <i class="fas fa-tools"></i> Specialist
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="admin-tab" data-bs-toggle="pill" data-bs-target="#admin" type="button" role="tab" aria-controls="admin" aria-selected="false">
+                        <i class="fas fa-user-cog"></i> Admin
+                    </button>
+                </li>
+            </ul>
+
+            <!-- Role-based Login Forms -->
+            <div class="tab-content" id="roleTabContent">
+                <!-- Student Login Form -->
+                <div class="tab-pane fade show active" id="student" role="tabpanel" aria-labelledby="student-tab">
+                    <form method="post" action="{% url 'hostelapp:login' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="role" value="student">
+
+                        <div class="input-group mb-3">
+                            <input type="text" name="username" class="form-control" placeholder="Student ID / Username" required>
+                            <div class="input-group-append">
+                                <div class="input-group-text">
+                                    <span class="fas fa-id-card"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="input-group mb-3">
+                            <input type="password" name="password" class="form-control" placeholder="Password" required>
+                            <div class="input-group-append">
+                                <div class="input-group-text">
+                                    <span class="fas fa-lock"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-8">
+                                <div class="form-check">
+                                    <input type="checkbox" class="form-check-input" id="student_remember">
+                                    <label class="form-check-label" for="student_remember">Remember Me</label>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <button type="submit" class="btn btn-primary btn-block">Sign In</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Specialist Login Form -->
+                <div class="tab-pane fade" id="specialist" role="tabpanel" aria-labelledby="specialist-tab">
+                    <form method="post" action="{% url 'hostelapp:login' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="role" value="specialist">
+
+                        <div class="input-group mb-3">
+                            <input type="text" name="username" class="form-control" placeholder="Staff ID / Username" required>
+                            <div class="input-group-append">
+                                <div class="input-group-text">
+                                    <span class="fas fa-briefcase"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="input-group mb-3">
+                            <input type="password" name="password" class="form-control" placeholder="Password" required>
+                            <div class="input-group-append">
+                                <div class="input-group-text">
+                                    <span class="fas fa-lock"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-8">
+                                <div class="form-check">
+                                    <input type="checkbox" class="form-check-input" id="specialist_remember">
+                                    <label class="form-check-label" for="specialist_remember">Remember Me</label>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <button type="submit" class="btn btn-primary btn-block">Sign In</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Admin Login Form -->
+                <div class="tab-pane fade" id="admin" role="tabpanel" aria-labelledby="admin-tab">
+                    <form method="post" action="{% url 'hostelapp:login' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="role" value="admin">
+
+                        <div class="input-group mb-3">
+                            <input type="text" name="username" class="form-control" placeholder="Admin Username" required>
+                            <div class="input-group-append">
+                                <div class="input-group-text">
+                                    <span class="fas fa-user-shield"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="input-group mb-3">
+                            <input type="password" name="password" class="form-control" placeholder="Password" required>
+                            <div class="input-group-append">
+                                <div class="input-group-text">
+                                    <span class="fas fa-lock"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-8">
+                                <div class="form-check">
+                                    <input type="checkbox" class="form-check-input" id="admin_remember">
+                                    <label class="form-check-label" for="admin_remember">Remember Me</label>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <button type="submit" class="btn btn-primary btn-block">Sign In</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            {% if form.errors %}
+            <div class="alert alert-danger mt-3">
+                Invalid username or password for the selected role. Please try again.
+            </div>
+            {% endif %}
+
+            <p class="mb-0 mt-3 text-center">
+
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- Add Bootstrap JS for tabs (if not already in base.html) -->
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+{% endblock %}
+{% endblock %}

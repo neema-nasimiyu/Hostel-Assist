@@ -1,0 +1,331 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Quick Actions Card -->
+    <div class="col-md-12 mb-4">
+        <div class="card">
+<div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+    <h3 class="card-title mb-0">Quick Actions</h3>
+    <form action="{% url 'logout' %}" method="post" style="display: inline;">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-light btn-sm">
+            <i class="fas fa-sign-out-alt"></i> Logout
+        </button>
+    </form>
+</div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <a href="{% url 'hostelapp:create_student_account' %}" class="btn btn-info btn-lg btn-block mb-2">
+                            <i class="fas fa-user-graduate"></i> Create Student Account
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="{% url 'hostelapp:create_professional_account' %}" class="btn btn-warning btn-lg btn-block mb-2">
+                            <i class="fas fa-user-cog"></i> Create Professional Account
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="{% url 'hostelapp:assign_task' %}" class="btn btn-success btn-lg btn-block mb-2">
+                            <i class="fas fa-tasks"></i> Assign Task
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <button type="button" class="btn btn-secondary btn-lg btn-block mb-2" data-toggle="modal" data-target="#bulkUploadModal">
+                            <i class="fas fa-upload"></i> Bulk Upload Students
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="col-lg-3 col-6">
+        <div class="small-box bg-info">
+            <div class="inner">
+                <h3>{{ total_complaints|default:"0" }}</h3>
+                <p>Total Complaints</p>
+            </div>
+            <div class="icon">
+                <i class="fas fa-ticket-alt"></i>
+            </div>
+            <a href="{% url 'hostelapp:complaint_list' %}" class="small-box-footer">
+                View all <i class="fas fa-arrow-circle-right"></i>
+            </a>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-6">
+        <div class="small-box bg-warning">
+            <div class="inner">
+                <h3>{{ pending_complaints|default:"0" }}</h3>
+                <p>Pending Complaints</p>
+            </div>
+            <div class="icon">
+                <i class="fas fa-clock"></i>
+            </div>
+            <a href="{% url 'hostelapp:complaint_list' %}?status=pending" class="small-box-footer">
+                View pending <i class="fas fa-arrow-circle-right"></i>
+            </a>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-6">
+        <div class="small-box bg-success">
+            <div class="inner">
+                <h3>{{ completed_complaints|default:"0" }}</h3>
+                <p>Completed</p>
+            </div>
+            <div class="icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <a href="{% url 'hostelapp:complaint_list' %}?status=completed" class="small-box-footer">
+                View completed <i class="fas fa-arrow-circle-right"></i>
+            </a>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-6">
+        <div class="small-box bg-danger">
+            <div class="inner">
+                <h3>{{ total_students|default:"0" }}</h3>
+                <p>Total Students</p>
+            </div>
+            <div class="icon">
+                <i class="fas fa-users"></i>
+            </div>
+            <a href="{% url 'hostelapp:user_list' %}" class="small-box-footer">
+                View users <i class="fas fa-arrow-circle-right"></i>
+            </a>
+        </div>
+    </div>
+
+    <!-- Specialists Overview -->
+    <div class="col-md-6 mt-4">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Specialists Overview</h3>
+                <div class="card-tools">
+                    <a href="{% url 'hostelapp:professional_list' %}" class="btn btn-primary btn-sm">
+                        <i class="fas fa-eye"></i> View All
+                    </a>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Specialist</th>
+                            <th>Specialization</th>
+                            <th>Active Tasks</th>
+                            <th>Completed</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for specialist in specialists %}
+                        <tr>
+                            <td>{{ specialist.user.get_full_name|default:specialist.user.username }}</td>
+                            <td>{{ specialist.specialization|default:"General" }}</td>
+                            <td>
+                                <span class="badge badge-warning">{{ specialist.active_tasks_count }}</span>
+                            </td>
+                            <td>
+                                <span class="badge badge-success">{{ specialist.completed_tasks_count }}</span>
+                            </td>
+                            <td>
+                                <a href="{% url 'hostelapp:assign_task' %}?specialist={{ specialist.id }}" class="btn btn-success btn-sm">
+                                    <i class="fas fa-tasks"></i> Assign Task
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center">No specialists found</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <!-- Pending Tasks Section (UPDATED) -->
+    <div class="col-md-6 mt-4">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Pending Tasks</h3>
+                <div class="card-tools">
+                    <a href="{% url 'hostelapp:task_list' %}" class="btn btn-primary btn-sm">
+                        <i class="fas fa-eye"></i> View All Tasks
+                    </a>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Task</th>
+                            <th>Assigned To</th>
+                            <th>Status</th>
+                            <th>Priority</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for task in pending_tasks %}
+                        <tr>
+                            <td>{{ task.title }}</td>
+                            <td>
+                                {% if task.assigned_to %}
+                                    {{ task.assigned_to.get_full_name|default:task.assigned_to.username }}
+                                {% else %}
+                                    <span class="text-muted">Unassigned</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge badge-{{ task.status|lower }}">
+                                    {{ task.get_status_display }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge badge-{% if task.priority == 'high' %}danger{% elif task.priority == 'medium' %}warning{% else %}info{% endif %}">
+                                    {{ task.get_priority_display }}
+                                </span>
+                            </td>
+                            <td>
+                                <a href="{% url 'hostelapp:assign_complaint' task.id %}" class="btn btn-info btn-sm">
+                                    <i class="fas fa-user-plus"></i> Assign
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center">No pending tasks</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <!-- Recent Complaints Table -->
+    <div class="col-md-12 mt-4">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Recent Complaints</h3>
+                <div class="card-tools">
+                    <a href="{% url 'hostelapp:generate_report' %}" class="btn btn-success btn-sm">
+                        <i class="fas fa-chart-bar"></i> Generate Report
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                <table class="table table-bordered table-striped">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Title</th>
+                            <th>Student</th>
+                            <th>Assigned To</th>
+                            <th>Status</th>
+                            <th>Priority</th>
+                            <th>Date</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for complaint in recent_complaints %}
+                        <tr>
+                            <td>{{ complaint.id }}</td>
+                            <td>{{ complaint.title }}</td>
+                            <td>{{ complaint.student.username }}</td>
+                            <td>
+                                {% if complaint.assigned_to %}
+                                    {{ complaint.assigned_to.user.get_full_name|default:complaint.assigned_to.user.username }}
+                                {% else %}
+                                    <span class="text-muted">Unassigned</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge badge-{% if complaint.status == 'completed' %}success{% elif complaint.status == 'pending' %}warning{% elif complaint.status == 'in_progress' %}info{% else %}secondary{% endif %}">
+                                    {{ complaint.get_status_display }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge badge-{% if complaint.priority == 'high' %}danger{% elif complaint.priority == 'medium' %}warning{% else %}info{% endif %}">
+                                    {{ complaint.get_priority_display }}
+                                </span>
+                            </td>
+                            <td>{{ complaint.created_at|date:"M d, Y" }}</td>
+                            <td>
+                                <a href="{% url 'hostelapp:complaint_detail' complaint.id %}" class="btn btn-info btn-sm">
+                                    <i class="fas fa-eye"></i> View
+                                </a>
+                                {% if not complaint.assigned_to %}
+                                <a href="{% url 'hostelapp:assign_complaint' complaint.id %}" class="btn btn-success btn-sm">
+                                    <i class="fas fa-user-plus"></i> Assign
+                                </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center">No complaints found</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Upload Modal -->
+<div class="modal fade" id="bulkUploadModal" tabindex="-1" role="dialog" aria-labelledby="bulkUploadModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="bulkUploadModalLabel">Bulk Upload Students</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form action="{% url 'hostelapp:bulk_upload_students' %}" method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="csvFile">Upload CSV File</label>
+                        <input type="file" class="form-control-file" id="csvFile" name="csv_file" accept=".csv" required>
+                        <small class="form-text text-muted">
+                            CSV should contain columns: username, email, first_name, last_name, room_number, phone_number
+                        </small>
+                    </div>
+                    <div class="form-group">
+                        <a href="{% url 'hostelapp:download_sample_csv' %}" class="btn btn-info btn-sm">
+                            <i class="fas fa-download"></i> Download Sample CSV
+                        </a>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Upload</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Auto-hide alerts after 5 seconds
+    setTimeout(function() {
+        $('.alert').fadeOut('slow');
+    }, 5000);
+</script>
+{% endblock %}

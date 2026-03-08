@@ -1,0 +1,205 @@
+<!-- templates/hostelapp/specialist/dashboard.html -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Specialist Dashboard{% endblock %}
+
+{% block sidebar_menu %}
+<li class="nav-item">
+    <a href="{% url 'dashboard' %}" class="nav-link active">
+        <i class="nav-icon fas fa-tachometer-alt"></i>
+        <p>Dashboard</p>
+    </a>
+</li>
+<li class="nav-item">
+    <a href="#" class="nav-link">
+        <i class="nav-icon fas fa-tasks"></i>
+        <p>My Jobs</p>
+        <i class="fas fa-angle-left right"></i>
+    </a>
+    <ul class="nav nav-treeview">
+        <li class="nav-item">
+            <a href="#" class="nav-link">
+                <i class="far fa-circle nav-icon"></i>
+                <p>All Assigned ({{ total_assigned }})</p>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a href="#" class="nav-link">
+                <i class="far fa-circle nav-icon"></i>
+                <p>In Progress ({{ in_progress }})</p>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a href="#" class="nav-link">
+                <i class="far fa-circle nav-icon"></i>
+                <p>Completed ({{ completed }})</p>
+            </a>
+        </li>
+    </ul>
+</li>
+{% endblock %}
+
+{% block content %}
+<!-- Info boxes -->
+<div class="row">
+    <div class="col-12 col-sm-6 col-md-4">
+        <div class="info-box">
+            <span class="info-box-icon bg-info elevation-1"><i class="fas fa-tasks"></i></span>
+            <div class="info-box-content">
+                <span class="info-box-text">Total Assigned</span>
+                <span class="info-box-number">{{ total_assigned }}</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-sm-6 col-md-4">
+        <div class="info-box mb-3">
+            <span class="info-box-icon bg-primary elevation-1"><i class="fas fa-spinner"></i></span>
+            <div class="info-box-content">
+                <span class="info-box-text">In Progress</span>
+                <span class="info-box-number">{{ in_progress }}</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-sm-6 col-md-4">
+        <div class="info-box mb-3">
+            <span class="info-box-icon bg-success elevation-1"><i class="fas fa-check-circle"></i></span>
+            <div class="info-box-content">
+                <span class="info-box-text">Completed</span>
+                <span class="info-box-number">{{ completed }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- My Assigned Jobs -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">My Assigned Jobs</h3>
+                <div class="card-tools">
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-sm btn-default" id="showAll">All</button>
+                        <button type="button" class="btn btn-sm btn-default" id="showInProgress">In Progress</button>
+                        <button type="button" class="btn btn-sm btn-default" id="showCompleted">Completed</button>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-striped" id="jobsTable">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Student</th>
+                            <th>Room</th>
+                            <th>Title</th>
+                            <th>Priority</th>
+                            <th>Status</th>
+                            <th>Assigned</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for complaint in assigned_complaints %}
+                        <tr data-status="{{ complaint.status }}">
+                            <td>#{{ complaint.id }}</td>
+                            <td>{{ complaint.student.user.get_full_name }}</td>
+                            <td>{{ complaint.student.room_number }}</td>
+                            <td>{{ complaint.title|truncatechars:30 }}</td>
+                            <td>
+                                {% if complaint.priority == 'emergency' %}
+                                    <span class="badge badge-danger">Emergency</span>
+                                {% elif complaint.priority == 'high' %}
+                                    <span class="badge badge-warning">High</span>
+                                {% elif complaint.priority == 'medium' %}
+                                    <span class="badge badge-info">Medium</span>
+                                {% else %}
+                                    <span class="badge badge-success">Low</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if complaint.status == 'assigned' %}
+                                    <span class="badge badge-info">Assigned</span>
+                                {% elif complaint.status == 'in_progress' %}
+                                    <span class="badge badge-primary">In Progress</span>
+                                {% elif complaint.status == 'completed' %}
+                                    <span class="badge badge-success">Completed</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ complaint.assigned_at|timesince }} ago</td>
+                            <td>
+                                <a href="{% url 'complaint_detail' complaint.id %}" class="btn btn-info btn-sm">
+                                    <i class="fas fa-eye"></i> View
+                                </a>
+                                {% if complaint.status != 'completed' %}
+                                <button type="button" class="btn btn-success btn-sm" data-toggle="modal"
+                                        data-target="#completeModal{{ complaint.id }}">
+                                    <i class="fas fa-check"></i> Complete
+                                </button>
+                                {% endif %}
+                            </td>
+                        </tr>
+
+                        <!-- Complete Modal -->
+                        <div class="modal fade" id="completeModal{{ complaint.id }}" tabindex="-1" role="dialog">
+                            <div class="modal-dialog" role="document">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">Mark Job as Complete</h5>
+                                        <button type="button" class="close" data-dismiss="modal">
+                                            <span>&times;</span>
+                                        </button>
+                                    </div>
+                                    <form method="post" action="{% url 'complaint_detail' complaint.id %}">
+                                        {% csrf_token %}
+                                        <div class="modal-body">
+                                            <input type="hidden" name="status" value="completed">
+                                            <p>Are you sure you want to mark complaint #{{ complaint.id }} as completed?</p>
+                                            <div class="form-group">
+                                                <label>Completion Notes (Optional)</label>
+                                                <textarea name="message" class="form-control" rows="3"
+                                                          placeholder="Add completion notes..."></textarea>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                                            <button type="submit" class="btn btn-success">Mark Completed</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center">No jobs assigned yet</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Filter functionality
+    $('#showAll').click(function() {
+        $('#jobsTable tbody tr').show();
+    });
+
+    $('#showInProgress').click(function() {
+        $('#jobsTable tbody tr').hide();
+        $('#jobsTable tbody tr[data-status="in_progress"]').show();
+    });
+
+    $('#showCompleted').click(function() {
+        $('#jobsTable tbody tr').hide();
+        $('#jobsTable tbody tr[data-status="completed"]').show();
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}Create Specialist Account{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0">Create Specialist Account</h4>
+                </div>
+                <div class="card-body">
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <h5 class="mb-3">Login Credentials</h5>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="username" class="form-label">Username</label>
+                                <input type="text" class="form-control" id="username" name="username" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="password" class="form-label">Password</label>
+                                <input type="password" class="form-control" id="password" name="password" required>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="email" name="email" required>
+                        </div>
+                        
+                        <h5 class="mb-3 mt-4">Professional Information</h5>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="full_name" class="form-label">Full Name</label>
+                                <input type="text" class="form-control" id="full_name" name="full_name" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="specialization" class="form-label">Specialization</label>
+                                <select class="form-control" id="specialization" name="specialization" required>
+                                    <option value="">Select Specialization</option>
+                                    <option value="Counselor">Counselor</option>
+                                    <option value="Maintenance">Maintenance</option>
+                                    <option value="Healthcare">Healthcare</option>
+                                    <option value="Academic Advisor">Academic Advisor</option>
+                                    <option value="Career Counselor">Career Counselor</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="qualification" class="form-label">Qualification</label>
+                                <input type="text" class="form-control" id="qualification" name="qualification" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="experience_years" class="form-label">Years of Experience</label>
+                                <input type="number" class="form-control" id="experience_years" name="experience_years" required>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="phone_number" class="form-label">Phone Number</label>
+                            <input type="text" class="form-control" id="phone_number" name="phone_number" required>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success">Create Account</button>
+                            <a href="{% url 'hostelapp:admin_dashboard' %}" class="btn btn-secondary">Back to Dashboard</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

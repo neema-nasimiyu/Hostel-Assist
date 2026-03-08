@@ -1,0 +1,589 @@
+<!-- templates/hostelapp/create_complaint.html -->
+{% extends 'base.html' %}
+
+{% block title %}Create Complaint - Hostel Assist{% endblock %}
+
+{% block extra_css %}
+<style>
+    .complaint-container {
+        max-width: 800px;
+        margin: 40px auto;
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+
+    .complaint-header {
+        background: linear-gradient(135deg, #064521 0%, #06351b 100%);
+        color: white;
+        padding: 30px;
+        text-align: center;
+    }
+
+    .complaint-header h1 {
+        font-size: 28px;
+        margin-bottom: 10px;
+    }
+
+    .complaint-header p {
+        opacity: 0.9;
+        font-size: 16px;
+    }
+
+    .form-container {
+        padding: 30px;
+    }
+
+    .form-group {
+        margin-bottom: 25px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #333;
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        width: 100%;
+        padding: 12px 15px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 16px;
+        transition: all 0.3s ease;
+        font-family: inherit;
+        background-color: white;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .form-group input[type="text"],
+    .form-group input[type="email"],
+    .form-group input[type="number"],
+    .form-group input[type="tel"] {
+        background-color: white;
+    }
+
+    .form-group textarea {
+        min-height: 150px;
+        resize: vertical;
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+    }
+
+    .complaint-type {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+        margin-top: 5px;
+    }
+
+    .complaint-type label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: normal;
+        text-transform: none;
+        cursor: pointer;
+        padding: 8px 12px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+    }
+
+    .complaint-type label:hover {
+        background: #f5f5f5;
+        border-color: #667eea;
+    }
+
+    .complaint-type input[type="radio"] {
+        width: auto;
+        margin-right: 5px;
+    }
+
+    .complaint-type input[type="radio"]:checked + label {
+        background: #667eea;
+        color: white;
+        border-color: #667eea;
+    }
+
+    .priority-badge {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: 600;
+        margin-left: 10px;
+    }
+
+    .priority-high {
+        background: #fee;
+        color: #c00;
+    }
+
+    .priority-medium {
+        background: #fff3cd;
+        color: #856404;
+    }
+
+    .priority-low {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .submit-btn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 15px 30px;
+        font-size: 18px;
+        font-weight: 600;
+        border-radius: 8px;
+        cursor: pointer;
+        width: 100%;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .submit-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    .submit-btn:active {
+        transform: translateY(0);
+    }
+
+    .errorlist {
+        list-style: none;
+        color: #dc3545;
+        font-size: 14px;
+        margin-top: 5px;
+        padding-left: 0;
+    }
+
+    .errorlist li {
+        margin-bottom: 3px;
+    }
+
+    .help-text {
+        font-size: 12px;
+        color: #666;
+        margin-top: 5px;
+    }
+
+    .char-count {
+        text-align: right;
+        font-size: 12px;
+        color: #666;
+        margin-top: 5px;
+    }
+
+    .back-link {
+        display: inline-block;
+        margin-top: 20px;
+        color: #667eea;
+        text-decoration: none;
+        font-weight: 600;
+    }
+
+    .back-link:hover {
+        text-decoration: underline;
+    }
+
+    .section-title {
+        color: #333;
+        margin-bottom: 20px;
+        border-bottom: 2px solid #f0f0f0;
+        padding-bottom: 10px;
+        font-size: 20px;
+    }
+
+    /* Fix for disabled-looking inputs */
+    input:disabled,
+    input[readonly],
+    select:disabled,
+    textarea:disabled {
+        background-color: #f5f5f5;
+        cursor: not-allowed;
+        opacity: 0.7;
+    }
+
+    @media (max-width: 768px) {
+        .form-row {
+            grid-template-columns: 1fr;
+            gap: 0;
+        }
+
+        .complaint-type {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .complaint-type {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="complaint-container">
+    <div class="complaint-header">
+        <h1>📝 Register a Complaint</h1>
+        <p>Please fill in the details below to register your complaint</p>
+    </div>
+
+    <div class="form-container">
+        <form method="post" enctype="multipart/form-data" id="complaintForm">
+            {% csrf_token %}
+
+            <!-- Display non-field errors -->
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger">
+                {% for error in form.non_field_errors %}
+                    {{ error }}
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Student Information Section -->
+            <div style="margin-bottom: 30px;">
+                <h3 class="section-title">
+                    <i class="fas fa-user-graduate"></i> Student Information
+                </h3>
+
+                <!-- Registration Number -->
+                <div class="form-group">
+                    <label for="{{ form.registration_number.id_for_label }}">
+                        Registration Number <span style="color: #c00;">*</span>
+                    </label>
+                    <input type="text"
+                           name="{{ form.registration_number.name }}"
+                           id="{{ form.registration_number.id_for_label }}"
+                           class="form-control"
+                           value="{{ form.registration_number.value|default:'' }}"
+                           placeholder="Enter your university registration number"
+                           {% if form.registration_number.field.required %}required{% endif %}>
+                    {% if form.registration_number.errors %}
+                    <ul class="errorlist">
+                        {% for error in form.registration_number.errors %}
+                        <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+                    <div class="help-text">Enter your university registration number</div>
+                </div>
+
+                <!-- Hostel Name and Room Number Row -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="{{ form.hostel_name.id_for_label }}">
+                            Hostel Name <span style="color: #c00;">*</span>
+                        </label>
+                        <input type="text"
+                               name="{{ form.hostel_name.name }}"
+                               id="{{ form.hostel_name.id_for_label }}"
+                               class="form-control"
+                               value="{{ form.hostel_name.value|default:'' }}"
+                               placeholder="e.g., Boys Hostel A"
+                               {% if form.hostel_name.field.required %}required{% endif %}>
+                        {% if form.hostel_name.errors %}
+                        <ul class="errorlist">
+                            {% for error in form.hostel_name.errors %}
+                            <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-group">
+                        <label for="{{ form.room_number.id_for_label }}">
+                            Room Number <span style="color: #c00;">*</span>
+                        </label>
+                        <input type="text"
+                               name="{{ form.room_number.name }}"
+                               id="{{ form.room_number.id_for_label }}"
+                               class="form-control"
+                               value="{{ form.room_number.value|default:'' }}"
+                               placeholder="e.g., A-101, B-202"
+                               {% if form.room_number.field.required %}required{% endif %}>
+                        {% if form.room_number.errors %}
+                        <ul class="errorlist">
+                            {% for error in form.room_number.errors %}
+                            <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                        {% endif %}
+                        <div class="help-text">e.g., A-101, B-202</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Complaint Details Section -->
+            <div style="margin-bottom: 30px;">
+                <h3 class="section-title">
+                    <i class="fas fa-exclamation-triangle"></i> Complaint Details
+                </h3>
+
+                <!-- Complaint Title -->
+                <div class="form-group">
+                    <label for="{{ form.title.id_for_label }}">
+                        Complaint Title <span style="color: #c00;">*</span>
+                    </label>
+                    <input type="text"
+                           name="{{ form.title.name }}"
+                           id="{{ form.title.id_for_label }}"
+                           class="form-control"
+                           value="{{ form.title.value|default:'' }}"
+                           placeholder="Enter complaint title"
+                           {% if form.title.field.required %}required{% endif %}>
+                    {% if form.title.errors %}
+                    <ul class="errorlist">
+                        {% for error in form.title.errors %}
+                        <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+                    <div class="help-text">Brief summary of your complaint</div>
+                </div>
+
+                <!-- Complaint Type/Category -->
+                <div class="form-group">
+                    <label>Complaint Type <span style="color: #c00;">*</span></label>
+                    <div class="complaint-type">
+                        {% for radio in form.complaint_type %}
+                            <label>
+                                {{ radio.tag }}
+                                {{ radio.choice_label }}
+                            </label>
+                        {% endfor %}
+                    </div>
+                    {% if form.complaint_type.errors %}
+                    <ul class="errorlist">
+                        {% for error in form.complaint_type.errors %}
+                        <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+                </div>
+
+                <!-- Priority Level -->
+                <div class="form-group">
+                    <label for="{{ form.priority.id_for_label }}">
+                        Priority Level <span style="color: #c00;">*</span>
+                    </label>
+                    <select name="{{ form.priority.name }}"
+                            id="{{ form.priority.id_for_label }}"
+                            class="form-control"
+                            {% if form.priority.field.required %}required{% endif %}>
+                        {% for value, text in form.fields.priority.choices %}
+                        <option value="{{ value }}" {% if form.priority.value == value %}selected{% endif %}>
+                            {{ text }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    {% if form.priority.errors %}
+                    <ul class="errorlist">
+                        {% for error in form.priority.errors %}
+                        <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+                    <div class="help-text">
+                        <span class="priority-badge priority-high">High</span> - Urgent (e.g., electrical issues, water leakage)
+                        <br>
+                        <span class="priority-badge priority-medium">Medium</span> - Normal priority
+                        <br>
+                        <span class="priority-badge priority-low">Low</span> - Can be addressed later
+                    </div>
+                </div>
+
+                <!-- Detailed Complaint Description -->
+                <div class="form-group">
+                    <label for="{{ form.description.id_for_label }}">
+                        Detailed Description <span style="color: #c00;">*</span>
+                    </label>
+                    <textarea name="{{ form.description.name }}"
+                              id="{{ form.description.id_for_label }}"
+                              class="form-control"
+                              rows="5"
+                              placeholder="Please describe your complaint in detail..."
+                              maxlength="500"
+                              {% if form.description.field.required %}required{% endif %}>{{ form.description.value|default:'' }}</textarea>
+                    {% if form.description.errors %}
+                    <ul class="errorlist">
+                        {% for error in form.description.errors %}
+                        <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+                    <div class="char-count">
+                        <span id="charCount">0</span>/500 characters
+                    </div>
+                    <div class="help-text">
+                        Please provide as much detail as possible about the issue
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contact Information Section -->
+            <div style="margin-bottom: 30px;">
+                <h3 class="section-title">
+                    <i class="fas fa-address-book"></i> Contact Information (Optional)
+                </h3>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="{{ form.phone_number.id_for_label }}">
+                            Phone Number
+                        </label>
+                        <input type="tel"
+                               name="{{ form.phone_number.name }}"
+                               id="{{ form.phone_number.id_for_label }}"
+                               class="form-control"
+                               value="{{ form.phone_number.value|default:'' }}"
+                               placeholder="e.g., 9876543210">
+                        {% if form.phone_number.errors %}
+                        <ul class="errorlist">
+                            {% for error in form.phone_number.errors %}
+                            <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                        {% endif %}
+                        <div class="help-text">For updates and follow-ups</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="{{ form.email.id_for_label }}">
+                            Email
+                        </label>
+                        <input type="email"
+                               name="{{ form.email.name }}"
+                               id="{{ form.email.id_for_label }}"
+                               class="form-control"
+                               value="{{ form.email.value|default:'' }}"
+                               placeholder="your@email.com">
+                        {% if form.email.errors %}
+                        <ul class="errorlist">
+                            {% for error in form.email.errors %}
+                            <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- File Attachment (Optional) -->
+            <div class="form-group">
+                <label for="{{ form.attachment.id_for_label }}">
+                    <i class="fas fa-paperclip"></i> Attach Image/Document (Optional)
+                </label>
+                <input type="file"
+                       name="{{ form.attachment.name }}"
+                       id="{{ form.attachment.id_for_label }}"
+                       class="form-control"
+                       accept="image/jpeg,image/png,application/pdf">
+                {% if form.attachment.errors %}
+                <ul class="errorlist">
+                    {% for error in form.attachment.errors %}
+                    <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+                <div class="help-text">Upload relevant photos or documents (Max size: 5MB, Allowed: JPG, PNG, PDF)</div>
+            </div>
+
+            <!-- Terms and Conditions -->
+            <div class="form-group">
+                <label style="display: flex; align-items: center; gap: 10px; text-transform: none;">
+                    <input type="checkbox"
+                           name="{{ form.agree_terms.name }}"
+                           id="{{ form.agree_terms.id_for_label }}"
+                           {% if form.agree_terms.value %}checked{% endif %}
+                           {% if form.agree_terms.field.required %}required{% endif %}>
+                    I confirm that the information provided is accurate to the best of my knowledge
+                </label>
+                {% if form.agree_terms.errors %}
+                <ul class="errorlist">
+                    {% for error in form.agree_terms.errors %}
+                    <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+            </div>
+
+            <button type="submit" class="submit-btn">
+                📤 Submit Complaint
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const descriptionField = document.querySelector('#{{ form.description.id_for_label }}');
+        const charCount = document.getElementById('charCount');
+
+        if (descriptionField) {
+            // Initial count
+            charCount.textContent = descriptionField.value.length;
+
+            // Update count on input
+            descriptionField.addEventListener('input', function() {
+                const count = this.value.length;
+                charCount.textContent = count;
+
+                if (count > 500) {
+                    charCount.style.color = '#c00';
+                } else {
+                    charCount.style.color = '#666';
+                }
+            });
+        }
+
+        // File input validation
+        const fileInput = document.querySelector('input[type="file"]');
+        if (fileInput) {
+            fileInput.addEventListener('change', function() {
+                const file = this.files[0];
+                if (file) {
+                    const fileSize = file.size / 1024 / 1024; // in MB
+                    const fileType = file.type;
+
+                    if (fileSize > 5) {
+                        alert('File size should not exceed 5MB');
+                        this.value = '';
+                    }
+
+                    const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
+                    if (!allowedTypes.includes(fileType)) {
+                        alert('Only JPG, PNG, and PDF files are allowed');
+                        this.value = '';
+                    }
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

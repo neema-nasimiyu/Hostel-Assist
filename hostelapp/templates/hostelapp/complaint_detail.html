@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Complaint #{{ complaint.id }}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'hostelapp:dashboard' %}">Home</a></li>
+<li class="breadcrumb-item"><a href="{% url 'hostelapp:complaint_list' %}">Complaints</a></li>
+<li class="breadcrumb-item active">Complaint #{{ complaint.id }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">{{ complaint.title }}</h3>
+                <div class="card-tools">
+                    <span class="badge
+                        {% if complaint.status == 'completed' %}badge-success
+                        {% elif complaint.status == 'in_progress' %}badge-info
+                        {% elif complaint.status == 'assigned' %}badge-primary
+                        {% elif complaint.status == 'pending' %}badge-warning
+                        {% else %}badge-secondary{% endif %}
+                        p-2">
+                        {{ complaint.get_status_display }}
+                    </span>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Student:</strong>
+                        {{ complaint.student.get_full_name|default:complaint.student.username }}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Room:</strong>
+                        {{ complaint.student.profile.room_number|default:"N/A" }}
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Assigned To:</strong>
+                        {% if complaint.assigned_to %}
+                            {{ complaint.assigned_to.get_full_name|default:complaint.assigned_to.username }}
+                            ({{ complaint.assigned_to.profile.specialization|default:"Specialist" }})
+                        {% else %}
+                            <span class="text-muted">Not assigned yet</span>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Priority:</strong>
+                        <span class="badge
+                            {% if complaint.priority == 'high' %}badge-danger
+                            {% elif complaint.priority == 'medium' %}badge-warning
+                            {% elif complaint.priority == 'low' %}badge-info
+                            {% else %}badge-danger{% endif %}">
+                            {{ complaint.get_priority_display }}
+                        </span>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Created:</strong> {{ complaint.created_at|date:"F d, Y H:i" }}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Last Updated:</strong> {{ complaint.updated_at|date:"F d, Y H:i" }}
+                    </div>
+                </div>
+
+                <hr>
+
+                <h5>Description:</h5>
+                <div class="p-3 bg-light rounded">
+                    {{ complaint.description|linebreaks }}
+                </div>
+
+                {% if complaint.completed_at %}
+                <div class="alert alert-success mt-3">
+                    <i class="fas fa-check-circle mr-2"></i>
+                    Completed on: {{ complaint.completed_at|date:"F d, Y H:i" }}
+                </div>
+                {% endif %}
+            </div>
+
+            {% if user.profile.user_type == 'admin' or user == complaint.assigned_to %}
+            <div class="card-footer">
+                <form method="post" action="{% url 'hostelapp:update_complaint' complaint.id %}" class="form-inline">
+                    {% csrf_token %}
+                    <select name="status" class="form-control mr-2">
+                        <option value="">Update Status</option>
+                        {% if user.profile.user_type == 'admin' %}
+                        <option value="assigned">Assign</option>
+                        <option value="rejected">Reject</option>
+                        {% endif %}
+                        {% if user == complaint.assigned_to %}
+                        <option value="in_progress">Start Working</option>
+                        <option value="completed">Mark Completed</option>
+                        {% endif %}
+                    </select>
+                    <input type="text" name="message" class="form-control mr-2" placeholder="Add a note (optional)" style="width: 300px;">
+                    <button type="submit" class="btn btn-primary">Update</button>
+                </form>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Updates & Comments</h3>
+            </div>
+            <div class="card-body" style="max-height: 500px; overflow-y: auto;">
+                {% for update in updates %}
+                <div class="timeline-item mb-3">
+                    <div class="timeline-header">
+                        <span class="text-green">
+                            <i class="fas fa-user-circle mr-1"></i>
+                            {{ update.user.get_full_name|default:update.user.username }}
+                        </span>
+                        <small class="float-right text-muted">{{ update.created_at|timesince }} ago</small>
+                    </div>
+                    <div class="timeline-body">
+                        {% if update.status_change %}
+                        <span class="badge badge-info mb-2">
+                            Status changed to: {{ update.get_status_change_display }}
+                        </span>
+                        {% endif %}
+                        {% if update.message %}
+                        <p class="mb-0">{{ update.message }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                <hr>
+                {% empty %}
+                <p class="text-muted text-center">No updates yet</p>
+                {% endfor %}
+            </div>
+
+            {% if user.profile.user_type == 'admin' or user == complaint.assigned_to or user == complaint.student %}
+            <div class="card-footer">
+                <form method="post" action="{% url 'hostelapp:update_complaint' complaint.id %}">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <textarea name="message" class="form-control" rows="2" placeholder="Add a comment..."></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-success btn-block">
+                        <i class="fas fa-paper-plane mr-2"></i>Post Comment
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

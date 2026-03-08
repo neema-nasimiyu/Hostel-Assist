@@ -1,0 +1,265 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Specialist Dashboard{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Welcome Message -->
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Welcome, {{ user.get_full_name|default:user.username }}!</h3>
+            </div>
+            <div class="card-body">
+                <p>Manage your assigned tasks and update their status here.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row">
+    <div class="col-lg-4 col-6">
+        <div class="small-box bg-warning">
+            <div class="inner">
+                <h3>{{ assigned_complaints|length|default:"0" }}</h3>
+                <p>New Assignments</p>
+            </div>
+            <div class="icon">
+                <i class="fas fa-tasks"></i>
+            </div>
+            <a href="#assigned-tasks" class="small-box-footer">
+                View tasks <i class="fas fa-arrow-circle-right"></i>
+            </a>
+        </div>
+    </div>
+    
+    <div class="col-lg-4 col-6">
+        <div class="small-box bg-info">
+            <div class="inner">
+                <h3>{{ in_progress_complaints|length|default:"0" }}</h3>
+                <p>In Progress</p>
+            </div>
+            <div class="icon">
+                <i class="fas fa-spinner"></i>
+            </div>
+            <a href="#in-progress" class="small-box-footer">
+                View active <i class="fas fa-arrow-circle-right"></i>
+            </a>
+        </div>
+    </div>
+    
+    <div class="col-lg-4 col-6">
+        <div class="small-box bg-success">
+            <div class="inner">
+                <h3>{{ completed_complaints|default:"0" }}</h3>
+                <p>Completed</p>
+            </div>
+            <div class="icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <a href="#completed" class="small-box-footer">
+                View history <i class="fas fa-arrow-circle-right"></i>
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Assigned Tasks Section -->
+<div class="row mt-4" id="assigned-tasks">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-warning">
+                <h3 class="card-title">New Assignments ({{ assigned_complaints|length }})</h3>
+            </div>
+            <div class="card-body">
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Title</th>
+                            <th>Student</th>
+                            <th>Priority</th>
+                            <th>Room/Block</th>
+                            <th>Date</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for task in assigned_complaints %}
+                        <tr>
+                            <td>{{ task.id }}</td>
+                            <td>{{ task.title|truncatechars:30 }}</td>
+                            <td>{{ task.student.get_full_name|default:task.student.username }}</td>
+                            <td>
+                                <span class="badge badge-{% if task.priority == 'high' %}danger{% elif task.priority == 'medium' %}warning{% else %}info{% endif %}">
+                                    {{ task.get_priority_display }}
+                                </span>
+                            </td>
+                            <td>{{ task.room_number|default:"N/A" }}</td>
+                            <td>{{ task.created_at|date:"M d, Y" }}</td>
+                            <td>
+                                <a href="{% url 'hostelapp:complaint_detail' task.id %}" class="btn btn-info btn-sm">
+                                    <i class="fas fa-eye"></i> View
+                                </a>
+                                <button class="btn btn-primary btn-sm start-task" data-id="{{ task.id }}">
+                                    <i class="fas fa-play"></i> Start
+                                </button>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center">No new assignments</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- In Progress Tasks -->
+<div class="row mt-4" id="in-progress">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-info">
+                <h3 class="card-title">In Progress ({{ in_progress_complaints|length }})</h3>
+            </div>
+            <div class="card-body">
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Title</th>
+                            <th>Student</th>
+                            <th>Started</th>
+                            <th>Last Updated</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for task in in_progress_complaints %}
+                        <tr>
+                            <td>{{ task.id }}</td>
+                            <td>{{ task.title|truncatechars:30 }}</td>
+                            <td>{{ task.student.get_full_name|default:task.student.username }}</td>
+                            <td>{{ task.updated_at|date:"M d, Y" }}</td>
+                            <td>{{ task.updated_at|timesince }} ago</td>
+                            <td>
+                                <a href="{% url 'hostelapp:complaint_detail' task.id %}" class="btn btn-info btn-sm">
+                                    <i class="fas fa-eye"></i> View
+                                </a>
+                                <button class="btn btn-success btn-sm complete-task" data-id="{{ task.id }}">
+                                    <i class="fas fa-check"></i> Complete
+                                </button>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center">No tasks in progress</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Completed Tasks History -->
+<div class="row mt-4" id="completed">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-success">
+                <h3 class="card-title">Recently Completed</h3>
+            </div>
+            <div class="card-body">
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Title</th>
+                            <th>Student</th>
+                            <th>Completed</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for task in completed_tasks %}
+                        <tr>
+                            <td>{{ task.id }}</td>
+                            <td>{{ task.title|truncatechars:30 }}</td>
+                            <td>{{ task.student.get_full_name|default:task.student.username }}</td>
+                            <td>{{ task.completed_at|date:"M d, Y" }}</td>
+                            <td>
+                                <a href="{% url 'hostelapp:complaint_detail' task.id %}" class="btn btn-info btn-sm">
+                                    <i class="fas fa-eye"></i> View
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center">No completed tasks yet</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Quick Actions</h3>
+            </div>
+            <div class="card-body">
+                <a href="{% url 'hostelapp:assigned_tasks' %}" class="btn btn-primary mr-2">
+                    <i class="fas fa-tasks"></i> All My Tasks
+                </a>
+                <button class="btn btn-success mr-2" onclick="window.location.reload()">
+                    <i class="fas fa-sync"></i> Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript for task actions -->
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Start task
+    $('.start-task').click(function() {
+        var taskId = $(this).data('id');
+        if(confirm('Start working on this task?')) {
+            $.post('/complaints/' + taskId + '/update/', {
+                status: 'in_progress',
+                message: 'Started working on this complaint',
+                csrfmiddlewaretoken: '{{ csrf_token }}'
+            }).done(function() {
+                location.reload();
+            });
+        }
+    });
+    
+    // Complete task
+    $('.complete-task').click(function() {
+        var taskId = $(this).data('id');
+        if(confirm('Mark this task as completed?')) {
+            $.post('/complaints/' + taskId + '/update/', {
+                status: 'completed',
+                message: 'Task completed',
+                csrfmiddlewaretoken: '{{ csrf_token }}'
+            }).done(function() {
+                location.reload();
+            });
+        }
+    });
+});
+</script>
+{% endblock %}

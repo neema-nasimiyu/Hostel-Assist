@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="row">
+    {% if user_type == 'admin' %}
+        <!-- Admin Dashboard -->
+        <div class="col-lg-3 col-6">
+            <div class="small-box bg-info">
+                <div class="inner">
+                    <h3>{{ total_complaints }}</h3>
+                    <p>Total Complaints</p>
+                </div>
+                <div class="icon">
+                    <i class="fas fa-ticket-alt"></i>
+                </div>
+                <a href="{% url 'hostelapp:complaint_list' %}" class="small-box-footer">
+                    View all <i class="fas fa-arrow-circle-right"></i>
+                </a>
+            </div>
+        </div>
+        <!-- Add more admin stats -->
+
+    {% elif user_type == 'student' %}
+        <!-- Student Dashboard -->
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">My Complaints</h3>
+                    <div class="card-tools">
+                        <a href="{% url 'hostelapp:create_complaint' %}" class="btn btn-success btn-sm">
+                            <i class="fas fa-plus"></i> New Complaint
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Title</th>
+                                <th>Status</th>
+                                <th>Priority</th>
+                                <th>Date</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for complaint in my_complaints %}
+                            <tr>
+                                <td>{{ complaint.title }}</td>
+                                <td>
+                                    <span class="badge badge-{% if complaint.status == 'completed' %}success{% elif complaint.status == 'pending' %}warning{% elif complaint.status == 'in_progress' %}info{% else %}secondary{% endif %}">
+                                        {{ complaint.get_status_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge badge-{% if complaint.priority == 'high' %}danger{% elif complaint.priority == 'medium' %}warning{% else %}info{% endif %}">
+                                        {{ complaint.get_priority_display }}
+                                    </span>
+                                </td>
+                                <td>{{ complaint.created_at|date:"M d, Y" }}</td>
+                                <td>
+                                    <a href="{% url 'hostelapp:complaint_detail' complaint.id %}" class="btn btn-info btn-sm">
+                                        <i class="fas fa-eye"></i> View
+                                    </a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center">No complaints found</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    {% elif user_type == 'professional' %}
+        <!-- Professional Dashboard -->
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Assigned Tasks</h3>
+                    </div>
+                    <div class="card-body">
+                        <!-- Display assigned tasks -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

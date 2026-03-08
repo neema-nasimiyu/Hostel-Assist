@@ -1,0 +1,298 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Complaint Reports{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-chart-bar mr-2"></i>
+                    Complaint Reports
+                </h3>
+                <div class="card-tools">
+                    <a href="{% url 'hostelapp:download_pdf_report' %}?{{ request.GET.urlencode }}" class="btn btn-success btn-sm">
+                        <i class="fas fa-file-pdf mr-2"></i>Download PDF Report
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- Filter Form -->
+                <form method="get" class="mb-4">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label>Date From</label>
+                                <input type="date" name="from" class="form-control" value="{{ date_from }}">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label>Date To</label>
+                                <input type="date" name="to" class="form-control" value="{{ date_to }}">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label>Status</label>
+                                <select name="status" class="form-control">
+                                    <option value="">All Status</option>
+                                    <option value="pending" {% if selected_status == 'pending' %}selected{% endif %}>Pending</option>
+                                    <option value="assigned" {% if selected_status == 'assigned' %}selected{% endif %}>Assigned</option>
+                                    <option value="in_progress" {% if selected_status == 'in_progress' %}selected{% endif %}>In Progress</option>
+                                    <option value="completed" {% if selected_status == 'completed' %}selected{% endif %}>Completed</option>
+                                    <option value="rejected" {% if selected_status == 'rejected' %}selected{% endif %}>Rejected</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label>&nbsp;</label>
+                                <button type="submit" class="btn btn-primary btn-block">
+                                    <i class="fas fa-filter mr-2"></i>Apply Filters
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+
+                <!-- Statistics Cards -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="small-box bg-info">
+                            <div class="inner">
+                                <h3>{{ total }}</h3>
+                                <p>Total Complaints</p>
+                            </div>
+                            <div class="icon">
+                                <i class="fas fa-ticket-alt"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <div class="small-box bg-success">
+                            <div class="inner">
+                                <h3>
+                                    {% for item in by_status %}
+                                        {% if item.status == 'completed' %}{{ item.count }}{% endif %}
+                                    {% endfor %}
+                                </h3>
+                                <p>Completed</p>
+                            </div>
+                            <div class="icon">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <div class="small-box bg-warning">
+                            <div class="inner">
+                                <h3>
+                                    {% for item in by_status %}
+                                        {% if item.status == 'pending' %}{{ item.count }}{% endif %}
+                                    {% endfor %}
+                                </h3>
+                                <p>Pending</p>
+                            </div>
+                            <div class="icon">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <div class="small-box bg-danger">
+                            <div class="inner">
+                                <h3>
+                                    {% for item in by_priority %}
+                                        {% if item.priority == 'high' %}{{ item.count }}{% endif %}
+                                    {% endfor %}
+                                </h3>
+                                <p>High Priority</p>
+                            </div>
+                            <div class="icon">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts Row -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Complaints by Status</h3>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="statusChart" style="min-height: 250px; height: 250px; max-height: 250px; max-width: 100%;"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Complaints by Priority</h3>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="priorityChart" style="min-height: 250px; height: 250px; max-height: 250px; max-width: 100%;"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Average Completion Time -->
+                {% if avg_completion_time %}
+                <div class="alert alert-info">
+                    <i class="fas fa-clock mr-2"></i>
+                    <strong>Average Completion Time:</strong> {{ avg_completion_time|floatformat:1 }} hours
+                </div>
+                {% endif %}
+
+                <!-- Complaints Table -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Complaint Details</h3>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-bordered table-striped datatable">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Title</th>
+                                    <th>Student</th>
+                                    <th>Assigned To</th>
+                                    <th>Status</th>
+                                    <th>Priority</th>
+                                    <th>Created</th>
+                                    <th>Completed</th>
+                                    <th>Time to Complete</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for complaint in complaints %}
+                                <tr>
+                                    <td>{{ complaint.id }}</td>
+                                    <td>{{ complaint.title }}</td>
+                                    <td>{{ complaint.student.username }}</td>
+                                    <td>{{ complaint.assigned_to.username|default:"-" }}</td>
+                                    <td>
+                                        <span class="badge badge-{% if complaint.status == 'completed' %}success{% elif complaint.status == 'pending' %}warning{% elif complaint.status == 'in_progress' %}info{% else %}secondary{% endif %}">
+                                            {{ complaint.get_status_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-{% if complaint.priority == 'high' %}danger{% elif complaint.priority == 'medium' %}warning{% else %}info{% endif %}">
+                                            {{ complaint.get_priority_display }}
+                                        </span>
+                                    </td>
+                                    <td>{{ complaint.created_at|date:"Y-m-d H:i" }}</td>
+                                    <td>{{ complaint.completed_at|date:"Y-m-d H:i"|default:"-" }}</td>
+                                    <td>
+                                        {% if complaint.completed_at %}
+                                            {{ complaint.completed_at|timeuntil:complaint.created_at }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="9" class="text-center">No complaints found</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+$(document).ready(function() {
+    // Initialize DataTable
+    $('.datatable').DataTable({
+        "paging": true,
+        "lengthChange": true,
+        "searching": true,
+        "ordering": true,
+        "info": true,
+        "autoWidth": false,
+        "responsive": true,
+        "pageLength": 25
+    });
+    
+    // Status Chart
+    var statusCtx = document.getElementById('statusChart').getContext('2d');
+    var statusData = {
+        labels: [{% for item in by_status %}'{{ item.status|title }}'{% if not forloop.last %}, {% endif %}{% endfor %}],
+        datasets: [{
+            data: [{% for item in by_status %}{{ item.count }}{% if not forloop.last %}, {% endif %}{% endfor %}],
+            backgroundColor: [
+                'rgba(255, 193, 7, 0.8)',  // pending - yellow
+                'rgba(23, 162, 184, 0.8)', // assigned - teal
+                'rgba(0, 123, 255, 0.8)',  // in_progress - blue
+                'rgba(40, 167, 69, 0.8)',  // completed - green
+                'rgba(220, 53, 69, 0.8)'   // rejected - red
+            ],
+            borderWidth: 1
+        }]
+    };
+    
+    new Chart(statusCtx, {
+        type: 'pie',
+        data: statusData,
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+    
+    // Priority Chart
+    var priorityCtx = document.getElementById('priorityChart').getContext('2d');
+    var priorityData = {
+        labels: [{% for item in by_priority %}'{{ item.priority|title }}'{% if not forloop.last %}, {% endif %}{% endfor %}],
+        datasets: [{
+            data: [{% for item in by_priority %}{{ item.count }}{% if not forloop.last %}, {% endif %}{% endfor %}],
+            backgroundColor: [
+                'rgba(40, 167, 69, 0.8)',  // low - green
+                'rgba(255, 193, 7, 0.8)',  // medium - yellow
+                'rgba(220, 53, 69, 0.8)',  // high - red
+                'rgba(108, 117, 125, 0.8)' // emergency - gray
+            ],
+            borderWidth: 1
+        }]
+    };
+    
+    new Chart(priorityCtx, {
+        type: 'doughnut',
+        data: priorityData,
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

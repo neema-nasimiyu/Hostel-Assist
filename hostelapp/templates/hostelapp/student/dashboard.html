@@ -1,0 +1,176 @@
+<!-- templates/hostelapp/student/dashboard.html -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Student Dashboard{% endblock %}
+
+{% block sidebar_menu %}
+<li class="nav-item">
+    <a href="{% url 'dashboard' %}" class="nav-link active">
+        <i class="nav-icon fas fa-tachometer-alt"></i>
+        <p>Dashboard</p>
+    </a>
+</li>
+<li class="nav-item">
+    <a href="{% url 'create_complaint' %}" class="nav-link">
+        <i class="nav-icon fas fa-plus-circle"></i>
+        <p>New Complaint</p>
+    </a>
+</li>
+<li class="nav-item">
+    <a href="#" class="nav-link">
+        <i class="nav-icon fas fa-list"></i>
+        <p>My Complaints</p>
+        <i class="fas fa-angle-left right"></i>
+    </a>
+    <ul class="nav nav-treeview">
+        <li class="nav-item">
+            <a href="#" class="nav-link">
+                <i class="far fa-circle nav-icon"></i>
+                <p>All ({{ total_complaints }})</p>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a href="#" class="nav-link">
+                <i class="far fa-circle nav-icon"></i>
+                <p>Pending ({{ pending_complaints }})</p>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a href="#" class="nav-link">
+                <i class="far fa-circle nav-icon"></i>
+                <p>In Progress ({{ in_progress_complaints }})</p>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a href="#" class="nav-link">
+                <i class="far fa-circle nav-icon"></i>
+                <p>Completed ({{ completed_complaints }})</p>
+            </a>
+        </li>
+    </ul>
+</li>
+{% endblock %}
+
+{% block content %}
+<!-- Info boxes -->
+<div class="row">
+    <div class="col-12 col-sm-6 col-md-3">
+        <div class="info-box">
+            <span class="info-box-icon bg-info elevation-1"><i class="fas fa-tasks"></i></span>
+            <div class="info-box-content">
+                <span class="info-box-text">Total Complaints</span>
+                <span class="info-box-number">{{ total_complaints }}</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-sm-6 col-md-3">
+        <div class="info-box mb-3">
+            <span class="info-box-icon bg-warning elevation-1"><i class="fas fa-clock"></i></span>
+            <div class="info-box-content">
+                <span class="info-box-text">Pending</span>
+                <span class="info-box-number">{{ pending_complaints }}</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-sm-6 col-md-3">
+        <div class="info-box mb-3">
+            <span class="info-box-icon bg-primary elevation-1"><i class="fas fa-spinner"></i></span>
+            <div class="info-box-content">
+                <span class="info-box-text">In Progress</span>
+                <span class="info-box-number">{{ in_progress_complaints }}</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-sm-6 col-md-3">
+        <div class="info-box mb-3">
+            <span class="info-box-icon bg-success elevation-1"><i class="fas fa-check-circle"></i></span>
+            <div class="info-box-content">
+                <span class="info-box-text">Completed</span>
+                <span class="info-box-number">{{ completed_complaints }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">My Recent Complaints</h3>
+                <div class="card-tools">
+                    <a href="{% url 'create_complaint' %}" class="btn btn-primary btn-sm">
+                        <i class="fas fa-plus"></i> New Complaint
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                <table class="table table-bordered table-striped">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Title</th>
+                            <th>Type</th>
+                            <th>Priority</th>
+                            <th>Status</th>
+                            <th>Assigned To</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for complaint in complaints|slice:":10" %}
+                        <tr>
+                            <td>#{{ complaint.id }}</td>
+                            <td>{{ complaint.title }}</td>
+                            <td>{{ complaint.get_complaint_type_display }}</td>
+                            <td>
+                                {% if complaint.priority == 'emergency' %}
+                                    <span class="badge badge-danger">Emergency</span>
+                                {% elif complaint.priority == 'high' %}
+                                    <span class="badge badge-warning">High</span>
+                                {% elif complaint.priority == 'medium' %}
+                                    <span class="badge badge-info">Medium</span>
+                                {% else %}
+                                    <span class="badge badge-success">Low</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if complaint.status == 'pending' %}
+                                    <span class="badge badge-warning">Pending</span>
+                                {% elif complaint.status == 'assigned' %}
+                                    <span class="badge badge-info">Assigned</span>
+                                {% elif complaint.status == 'in_progress' %}
+                                    <span class="badge badge-primary">In Progress</span>
+                                {% elif complaint.status == 'completed' %}
+                                    <span class="badge badge-success">Completed</span>
+                                {% else %}
+                                    <span class="badge badge-danger">Rejected</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if complaint.assigned_to %}
+                                    {{ complaint.assigned_to.user.get_full_name }}
+                                {% else %}
+                                    <span class="text-muted">Not assigned</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ complaint.created_at|date:"M d, Y" }}</td>
+                            <td>
+                                <a href="{% url 'complaint_detail' complaint.id %}" class="btn btn-info btn-sm">
+                                    <i class="fas fa-eye"></i> View
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center">No complaints found</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

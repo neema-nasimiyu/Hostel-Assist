@@ -15,6 +15,7 @@ class UserProfile(models.Model):
     phone_number = models.CharField(max_length=15, blank=True)
     room_number = models.CharField(max_length=10, blank=True)  # For students
     specialization = models.CharField(max_length=100, blank=True)  # For professionals (electrician, plumber, etc.)
+    hostel_name = models.CharField(max_length=50, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -82,6 +83,8 @@ class ComplaintUpdate(models.Model):
 
     def __str__(self):
         return f"Update on {self.complaint.title} by {self.user.username}"
+
+
 
 
 

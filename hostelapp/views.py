@@ -10,6 +10,7 @@ from django.core.paginator import Paginator
 from datetime import datetime, timedelta
 import csv
 import io
+import logging
 
 # ReportLab imports for PDF
 from reportlab.pdfgen import canvas
@@ -114,6 +115,7 @@ def dashboard(request):
 @user_passes_test(is_admin)
 def admin_dashboard(request):
     """Admin dashboard view"""
+
     # Get counts
     total_complaints = Complaint.objects.count()
     pending_complaints = Complaint.objects.filter(status='pending').count()
@@ -130,6 +132,17 @@ def admin_dashboard(request):
 
     # Get professionals with their active tasks
     professionals = User.objects.filter(profile__user_type='professional')
+
+
+    debug_info = []
+    all_profiles = UserProfile.objects.all()
+    for profile in all_profiles:
+        debug_info.append({
+            'username': profile.user.username,
+            'user_type': profile.user_type,
+            'specialization': profile.specialization
+        })
+
     professional_data = []
     for prof in professionals:
         active_tasks = Complaint.objects.filter(
@@ -161,9 +174,10 @@ def admin_dashboard(request):
         'recent_complaints': recent_complaints,
         'professionals': professional_data,
         'pending_tasks': pending_tasks,
+        'debug_info': debug_info,  # Add debug info to context
     }
-    return render(request, 'dashboards/admin_dashboard.html', context)
 
+    return render(request, 'dashboards/admin_dashboard.html', context)
 
 @login_required
 @user_passes_test(is_student)
@@ -189,14 +203,19 @@ def professional_dashboard(request):
     # Get complaints assigned to this professional
     assigned_complaints = Complaint.objects.filter(assigned_to=request.user)
 
+    # Pass the actual querysets, NOT counts
     context = {
-        'assigned_complaints': assigned_complaints.filter(status='assigned').count(),
-        'in_progress_complaints': assigned_complaints.filter(status='in_progress').count(),
-        'completed_complaints': assigned_complaints.filter(status='completed').count(),
+        'assigned_complaints': assigned_complaints.filter(status='assigned'),  # ← Remove .count()
+        'in_progress_complaints': assigned_complaints.filter(status='in_progress'),  # ← Remove .count()
+        'completed_complaints': assigned_complaints.filter(status='completed'),  # ← Remove .count()
         'my_tasks': assigned_complaints.order_by('-created_at')[:10],
+
+        # If you need counts for stats cards, add separate variables
+        'assigned_count': assigned_complaints.filter(status='assigned').count(),
+        'in_progress_count': assigned_complaints.filter(status='in_progress').count(),
+        'completed_count': assigned_complaints.filter(status='completed').count(),
     }
     return render(request, 'dashboards/specialist_dashboard.html', context)
-
 
 # ==================== PROFILE VIEW ====================
 @login_required
@@ -475,32 +494,76 @@ def toggle_user_status(request, user_id):
     return redirect('hostelapp:user_list')
 
 
-# ==================== ACCOUNT CREATION VIEWS ====================
+logger = logging.getLogger(__name__)
+
+
 @login_required
 @user_passes_test(is_admin)
 def create_student_account(request):
-    """View for admin to create student accounts"""
+    """Single, unified view for creating student accounts"""
+
     if request.method == 'POST':
+        # Get data from POST request (matching your image)
         username = request.POST.get('username')
-        email = request.POST.get('email')
         password = request.POST.get('password')
-        first_name = request.POST.get('first_name')
-        last_name = request.POST.get('last_name')
+        email = request.POST.get('email')
+        full_name = request.POST.get('full_name')
+        student_id = request.POST.get('student_id')
         room_number = request.POST.get('room_number')
         phone_number = request.POST.get('phone_number')
+        hostel_name = request.POST.get('hostel_name')  # From your image
+        department = request.POST.get('department')
 
-        # Check if username already exists
-        if User.objects.filter(username=username).exists():
-            messages.error(request, 'Username already exists!')
-            return render(request, 'hostelapp/create_student.html')
+        # Debug logging
+        logger.info(f"Creating student account: username={username}, email={email}, hostel={hostel_name}")
+        print(f"Received data: username={username}, email={email}, student_id={student_id}, hostel={hostel_name}")
 
-        # Check if email already exists
-        if User.objects.filter(email=email).exists():
-            messages.error(request, 'Email already exists!')
-            return render(request, 'hostelapp/create_student.html')
+        # Validate required fields (including all fields from your image)
+        required_fields = {
+            'username': username,
+            'password': password,
+            'email': email,
+            'full_name': full_name,
+            'student_id': student_id,
+            'room_number': room_number,
+            'hostel_name': hostel_name,
+            'department': department
+        }
+
+        missing_fields = [field for field, value in required_fields.items() if not value]
+
+        if missing_fields:
+            messages.error(request, f'Required fields missing: {", ".join(missing_fields)}')
+            # Return with the submitted data to repopulate the form
+            context = {
+                'username': username,
+                'email': email,
+                'full_name': full_name,
+                'student_id': student_id,
+                'room_number': room_number,
+                'phone_number': phone_number,
+                'hostel_name': hostel_name,
+                'department': department
+            }
+            return render(request, 'hostelapp/create_student.html', context)
 
         try:
-            # Create user
+            # Check if username already exists
+            if User.objects.filter(username=username).exists():
+                messages.error(request, f'Username "{username}" already exists. Please choose another.')
+                return render(request, 'hostelapp/create_student.html', request.POST.dict())
+
+            # Check if email already exists
+            if User.objects.filter(email=email).exists():
+                messages.error(request, f'Email "{email}" already registered. Please use another email.')
+                return render(request, 'hostelapp/create_student.html', request.POST.dict())
+
+            # Split full name into first and last name
+            name_parts = full_name.strip().split()
+            first_name = name_parts[0] if name_parts else ''
+            last_name = ' '.join(name_parts[1:]) if len(name_parts) > 1 else ''
+
+            # Create User
             user = User.objects.create_user(
                 username=username,
                 email=email,
@@ -509,48 +572,127 @@ def create_student_account(request):
                 last_name=last_name
             )
 
-            # Create user profile for student
-            UserProfile.objects.create(
-                user=user,
-                user_type='student',
-                phone_number=phone_number,
-                room_number=room_number
-            )
+            # Set user as active
+            user.is_active = True
+            user.save()
 
-            messages.success(request, f'Student account created successfully for {username}')
-            return redirect('hostelapp:admin_dashboard')
+            # Create or update UserProfile with all the student information
+            profile, created = UserProfile.objects.get_or_create(user=user)
+            profile.user_type = 'student'
+            profile.phone_number = phone_number or ''
+            profile.room_number = room_number or ''
+
+            # Add these fields to your UserProfile model if they don't exist
+            # If these fields don't exist in your model, remove these lines
+            # and update your UserProfile model first
+            profile.student_id = student_id
+            profile.hostel_name = hostel_name
+            profile.department = department
+
+            profile.save()
+
+            logger.info(f"Successfully created student account: {username}")
+            messages.success(request, f'Student account created successfully for {full_name} in {hostel_name} Hostel!')
+
+            # Clear the form by redirecting to a success page or back to dashboard
+            return redirect('hostelapp:admin_dashboard')  # or wherever you want to go
 
         except Exception as e:
-            messages.error(request, f'Error creating account: {str(e)}')
-            return render(request, 'hostelapp/create_student.html')
+            logger.error(f"Error creating student account: {str(e)}", exc_info=True)
+            print(f"Error creating student: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            messages.error(request, f'Error creating student account: {str(e)}')
 
-    return render(request, 'hostelapp/create_student.html')
+            # Return with the submitted data to repopulate the form
+            return render(request, 'hostelapp/create_student.html', request.POST.dict())
+
+    # GET request - show empty form with example data from your image
+    initial_data = {
+        'email': 'nema@gmail.com',
+        'full_name': 'Navy Nesh',
+        'student_id': 'com/1234/2023',
+        'room_number': '2',
+        'phone_number': '0798089292',
+        'hostel_name': 'Kenyatta',
+        'department': 'Computer Science'
+    }
+    return render(request, 'hostelapp/create_student.html', initial_data)
 
 
 @login_required
 @user_passes_test(is_admin)
 def create_professional_account(request):
     """View for admin to create professional accounts"""
+
     if request.method == 'POST':
+        # Get data from POST request
         username = request.POST.get('username')
-        email = request.POST.get('email')
         password = request.POST.get('password')
-        first_name = request.POST.get('first_name')
-        last_name = request.POST.get('last_name')
+        email = request.POST.get('email')
+        full_name = request.POST.get('full_name')
         specialization = request.POST.get('specialization')
-        phone_number = request.POST.get('phone_number')
+        phone_number = request.POST.get('phone_number', '')
+
+        # Debug print
+        print(f"Creating professional: username={username}, email={email}, specialization={specialization}")
+
+        # Validate required fields
+        required_fields = {
+            'username': username,
+            'password': password,
+            'email': email,
+            'full_name': full_name,
+            'specialization': specialization,
+        }
+
+        missing_fields = [field for field, value in required_fields.items() if not value]
+
+        if missing_fields:
+            messages.error(request, f'Required fields missing: {", ".join(missing_fields)}')
+            context = {
+                'username': username,
+                'email': email,
+                'full_name': full_name,
+                'specialization': specialization,
+                'phone_number': phone_number,
+            }
+            return render(request, 'hostelapp/create_professional.html', context)
 
         # Check if username already exists
         if User.objects.filter(username=username).exists():
-            messages.error(request, 'Username already exists!')
-            return render(request, 'hostelapp/create_professional.html')
+            messages.error(request, f'Username "{username}" already exists!')
+            context = {
+                'username': username,
+                'email': email,
+                'full_name': full_name,
+                'specialization': specialization,
+                'phone_number': phone_number,
+            }
+            return render(request, 'hostelapp/create_professional.html', context)
 
         # Check if email already exists
         if User.objects.filter(email=email).exists():
-            messages.error(request, 'Email already exists!')
-            return render(request, 'hostelapp/create_professional.html')
+            messages.error(request, f'Email "{email}" already exists!')
+            context = {
+                'username': username,
+                'email': email,
+                'full_name': full_name,
+                'specialization': specialization,
+                'phone_number': phone_number,
+            }
+            return render(request, 'hostelapp/create_professional.html', context)
 
         try:
+            # Split full name into first and last name
+            if full_name:
+                name_parts = full_name.strip().split()
+                first_name = name_parts[0] if name_parts else ''
+                last_name = ' '.join(name_parts[1:]) if len(name_parts) > 1 else '.'
+            else:
+                first_name = ''
+                last_name = '.'
+
             # Create user
             user = User.objects.create_user(
                 username=username,
@@ -560,21 +702,51 @@ def create_professional_account(request):
                 last_name=last_name
             )
 
-            # Create user profile for professional
-            UserProfile.objects.create(
+            # IMPORTANT FIX: Explicitly set user_type to 'professional'
+            # Use get_or_create to handle existing profiles
+            profile, created = UserProfile.objects.get_or_create(
                 user=user,
-                user_type='professional',
-                phone_number=phone_number,
-                specialization=specialization
+                defaults={
+                    'user_type': 'professional',  # THIS IS CRITICAL
+                    'phone_number': phone_number or '',
+                    'specialization': specialization,
+                }
             )
 
-            messages.success(request, f'Professional account created successfully for {username}')
+            # If profile already existed, make sure to update it to professional
+            if not created:
+                profile.user_type = 'professional'  # FORCE it to be professional
+                profile.phone_number = phone_number or ''
+                profile.specialization = specialization
+                profile.save()
+                print(f"Updated existing profile for {username} to professional")
+            else:
+                print(f"Created new professional profile for {username}")
+
+            # Double-check that it saved correctly
+            verification = UserProfile.objects.get(user=user)
+            print(f"VERIFICATION: User {username} has user_type = '{verification.user_type}'")
+
+            messages.success(request,
+                             f'Professional account created successfully for {full_name} as a {specialization}')
             return redirect('hostelapp:admin_dashboard')
 
         except Exception as e:
+            print(f"Error creating professional: {str(e)}")
+            import traceback
+            traceback.print_exc()
             messages.error(request, f'Error creating account: {str(e)}')
-            return render(request, 'hostelapp/create_professional.html')
 
+            context = {
+                'username': username,
+                'email': email,
+                'full_name': full_name,
+                'specialization': specialization,
+                'phone_number': phone_number,
+            }
+            return render(request, 'hostelapp/create_professional.html', context)
+
+    # GET request - show empty form
     return render(request, 'hostelapp/create_professional.html')
 
 
@@ -934,38 +1106,109 @@ def task_list(request):
 def assign_task(request):
     """View for admin to assign tasks to professionals"""
     if request.method == 'POST':
-        complaint_id = request.POST.get('complaint')
-        professional_id = request.POST.get('professional')
+        print("=== ASSIGN TASK POST REQUEST ===")
+        print("POST data:", request.POST)
 
-        if complaint_id and professional_id:
-            complaint = get_object_or_404(Complaint, id=complaint_id)
-            professional = get_object_or_404(User, id=professional_id, profile__user_type='professional')
+        # Get form data - match the field names from your template
+        title = request.POST.get('title')
+        description = request.POST.get('description')
+        category = request.POST.get('category')
+        priority = request.POST.get('priority')
+        professional_id = request.POST.get('professional')  # This matches your template
+        block = request.POST.get('block')
+        floor = request.POST.get('floor')
+        room_number = request.POST.get('room_number')
+        due_date = request.POST.get('due_date')
+        estimated_hours = request.POST.get('estimated_hours')
+        notes = request.POST.get('notes')
+        complaint_id = request.POST.get('complaint_id')  # Note: 'complaint_id', not 'complaint'
 
-            complaint.assigned_to = professional
-            complaint.status = 'assigned'
-            complaint.save()
+        # Validate required fields
+        if not title:
+            messages.error(request, "Task title is required")
+            return redirect('hostelapp:assign_task')
 
-            # Create update record
-            ComplaintUpdate.objects.create(
-                complaint=complaint,
-                user=request.user,
-                message=f'Task assigned to {professional.get_full_name() or professional.username}',
-                status_change='assigned'
+        if not professional_id:
+            messages.error(request, "Please select a professional")
+            return redirect('hostelapp:assign_task')
+
+        try:
+            # Get the professional user
+            professional = get_object_or_404(
+                User,
+                id=professional_id,
+                profile__user_type='professional'
             )
 
-            messages.success(request, f'Task #{complaint.id} assigned to {professional.username}')
+
+            if complaint_id:
+                # Update existing complaint
+                complaint = get_object_or_404(Complaint, id=complaint_id)
+                complaint.title = title
+                complaint.description = description
+                complaint.category = category
+                complaint.priority = priority
+                complaint.assigned_to = professional
+                complaint.status = 'assigned'
+                complaint.block = block
+                complaint.floor = floor
+                complaint.room_number = room_number
+                complaint.save()
+
+                # Create update record
+                ComplaintUpdate.objects.create(
+                    complaint=complaint,
+                    user=request.user,
+                    message=f'Task assigned to {professional.get_full_name() or professional.username}. Notes: {notes or "None"}',
+                    status_change='assigned'
+                )
+
+                messages.success(request, f'Task #{complaint.id} assigned to {professional.username}')
+            else:
+                # Create new complaint/task
+                complaint = Complaint.objects.create(
+                    title=title,
+                    description=description,
+                    category=category,
+                    priority=priority,
+                    assigned_to=professional,
+                    assigned_by=request.user,
+                    status='assigned',
+                    block=block,
+                    floor=floor,
+                    room_number=room_number,
+                )
+
+                messages.success(request, f'New task created and assigned to {professional.username}')
+
             return redirect('hostelapp:task_list')
 
-    # Get unassigned complaints
-    unassigned_complaints = Complaint.objects.filter(assigned_to__isnull=True, status='pending')
-    professionals = User.objects.filter(profile__user_type='professional', is_active=True)
+        except Exception as e:
+            print(f"Error assigning task: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            messages.error(request, f"Error assigning task: {str(e)}")
+            return redirect('hostelapp:assign_task')
 
-    context = {
-        'unassigned_complaints': unassigned_complaints,
-        'professionals': professionals,
-    }
-    return render(request, 'hostelapp/assign_task.html', context)
+    # GET request - show the form
+    else:
+        # Get unassigned complaints
+        unassigned_complaints = Complaint.objects.filter(assigned_to__isnull=True, status='pending')
+        professionals = User.objects.filter(profile__user_type='professional', is_active=True)
 
+        # Get complaint ID from URL if coming from a complaint
+        complaint_id = request.GET.get('complaint_id')
+        selected_complaint = None
+        if complaint_id:
+            selected_complaint = get_object_or_404(Complaint, id=complaint_id)
+
+        context = {
+            'unassigned_complaints': unassigned_complaints,
+            'professionals': professionals,
+            'selected_complaint': selected_complaint,
+            'today': date.today(),
+        }
+        return render(request, 'hostelapp/assign_task.html', context)
 
 @login_required
 @user_passes_test(is_admin)
@@ -1200,7 +1443,6 @@ def assign_task(request):
     }
     return render(request, 'hostelapp/assign_task.html', context)
 
-
 @login_required
 @user_passes_test(is_admin)
 def update_task(request, task_id):
@@ -1261,29 +1503,6 @@ def update_task(request, task_id):
     }
     return render(request, 'hostelapp/update_task.html', context)
 
-
-
-def create_student_account(request):
-    if request.method == 'POST':
-        form = StudentRegistrationForm(request.POST)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'Student account created successfully!')
-            return redirect('admin_dashboard')
-    else:
-        form = StudentRegistrationForm()
-    return render(request, 'hostelapp/create_student.html', {'form': form})
-
-def create_professional_account(request):
-    if request.method == 'POST':
-        form = ProfessionalRegistrationForm(request.POST)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'Professional account created successfully!')
-            return redirect('admin_dashboard')
-    else:
-        form = ProfessionalRegistrationForm()
-    return render(request, 'hostelapp/create_professional.html', {'form': form})  # Make sure template name matches
 
 
 @login_required

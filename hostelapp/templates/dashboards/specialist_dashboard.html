@@ -218,7 +218,7 @@
                 <h3 class="card-title">Quick Actions</h3>
             </div>
             <div class="card-body">
-                <a href="{% url 'hostelapp:assigned_tasks' %}" class="btn btn-primary mr-2">
+                <a href="{% url 'hostelapp:my_tasks' %}" class="btn btn-primary mr-2">
                     <i class="fas fa-tasks"></i> All My Tasks
                 </a>
                 <button class="btn btn-success mr-2" onclick="window.location.reload()">
@@ -231,35 +231,41 @@
 
 <!-- JavaScript for task actions -->
 {% block extra_js %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
 $(document).ready(function() {
     // Start task
     $('.start-task').click(function() {
         var taskId = $(this).data('id');
         if(confirm('Start working on this task?')) {
-            $.post('/complaints/' + taskId + '/update/', {
+            $.post('{% url "hostelapp:update_complaint" 0 %}'.replace('0', taskId), {
                 status: 'in_progress',
                 message: 'Started working on this complaint',
                 csrfmiddlewaretoken: '{{ csrf_token }}'
             }).done(function() {
                 location.reload();
+            }).fail(function(xhr, status, error) {
+                alert('Error: ' + error);
             });
         }
     });
-    
+
     // Complete task
     $('.complete-task').click(function() {
         var taskId = $(this).data('id');
         if(confirm('Mark this task as completed?')) {
-            $.post('/complaints/' + taskId + '/update/', {
+            $.post('{% url "hostelapp:update_complaint" 0 %}'.replace('0', taskId), {
                 status: 'completed',
                 message: 'Task completed',
                 csrfmiddlewaretoken: '{{ csrf_token }}'
             }).done(function() {
                 location.reload();
+            }).fail(function(xhr, status, error) {
+                alert('Error: ' + error);
             });
         }
     });
 });
 </script>
+{% endblock %}
 {% endblock %}

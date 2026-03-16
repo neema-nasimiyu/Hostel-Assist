@@ -1,0 +1,46 @@
+# Python compiled files
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtual environment
+venv/
+env/
+
+# Database files
+db.sqlite3
+
+# Django migrations cache
+*/migrations/__pycache__/
+
+# Static files (optional if you build them separately)
+staticfiles/
+
+# IDE / editor files
+.vscode/
+.idea/
+*.sublime-project
+# Python compiled files
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtual environment
+venv/
+env/
+
+# Database files
+db.sqlite3
+
+# Django migrations cache
+*/migrations/__pycache__/
+
+# Static files (optional if you build them separately)
+staticfiles/
+
+# IDE / editor files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.sublime-workspace

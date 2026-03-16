@@ -147,20 +147,31 @@ class UserCreationForm(AuthUserCreationForm):
         return user
 
 
-# Student Registration Form (Admin only - simplified)
+#StudentRegistrationForm:
+
 class StudentRegistrationForm(forms.Form):
+    # Login Credentials
     username = forms.CharField(max_length=150,
                                widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Username'}))
     password = forms.CharField(widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Password'}))
     confirm_password = forms.CharField(
         widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Confirm password'}))
     email = forms.EmailField(widget=forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'Email'}))
+
+    # Personal Information - Add missing fields
     full_name = forms.CharField(max_length=200,
                                 widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Full name'}))
-    phone_number = forms.CharField(max_length=15, widget=forms.TextInput(
-        attrs={'class': 'form-control', 'placeholder': 'Phone number'}))
+    student_id = forms.CharField(max_length=50,  # Add this field
+                                 widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Student ID'}))
+    phone_number = forms.CharField(max_length=15,
+                                   widget=forms.TextInput(
+                                       attrs={'class': 'form-control', 'placeholder': 'Phone number'}))
     room_number = forms.CharField(max_length=10,
                                   widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Room number'}))
+    hostel_name = forms.CharField(max_length=100,  # Add this field
+                                  widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Hostel name'}))
+    department = forms.CharField(max_length=100,  # Add this field
+                                 widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Department'}))
 
     def clean(self):
         cleaned_data = super().clean()
@@ -195,12 +206,13 @@ class StudentRegistrationForm(forms.Form):
             last_name=' '.join(full_name.split()[1:]) if len(full_name.split()) > 1 else ''
         )
 
-        # Create user profile
+        # Create user profile - You need to update your UserProfile model to include these fields
         profile = UserProfile.objects.create(
             user=user,
             user_type='student',
             phone_number=self.cleaned_data['phone_number'],
-            room_number=self.cleaned_data['room_number']
+            room_number=self.cleaned_data['room_number'],
+
         )
 
         return user

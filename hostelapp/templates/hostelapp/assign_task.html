@@ -1,0 +1,339 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Assign Task{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'hostelapp:admin_dashboard' %}">Dashboard</a></li>
+<li class="breadcrumb-item"><a href="{% url 'hostelapp:task_list' %}">Tasks</a></li>
+<li class="breadcrumb-item active">Assign Task</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card card-success">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-tasks mr-2"></i>
+                        Assign Task to Professional
+                    </h3>
+                </div>
+                <form method="post" action="{% url 'hostelapp:assign_task' %}">
+                    {% csrf_token %}
+                    <div class="card-body">
+                        {% if messages %}
+                            {% for message in messages %}
+                                <div class="alert alert-{{ message.tags }} alert-dismissible">
+                                    <button type="button" class="close" data-dismiss="alert">&times;</button>
+                                    {{ message }}
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+
+                        <!-- Task Details Section -->
+                        <div class="row">
+                            <div class="col-md-12">
+                                <h5 class="text-success mb-3">Task Details</h5>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="title">Task Title <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="title" name="title" 
+                                           placeholder="Enter task title" required 
+                                           value="{{ complaint.title|default:'' }}">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="category">Category <span class="text-danger">*</span></label>
+                                    <select class="form-control" id="category" name="category" required>
+                                        <option value="">Select Category</option>
+                                        <option value="plumbing">Plumbing</option>
+                                        <option value="electrical">Electrical</option>
+                                        <option value="carpentry">Carpentry</option>
+                                        <option value="cleaning">Cleaning</option>
+                                        <option value="painting">Painting</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="form-group">
+                                    <label for="description">Description <span class="text-danger">*</span></label>
+                                    <textarea class="form-control" id="description" name="description" 
+                                              rows="3" placeholder="Enter task description" required>{{ complaint.description|default:'' }}</textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="priority">Priority <span class="text-danger">*</span></label>
+                                    <select class="form-control" id="priority" name="priority" required>
+                                        <option value="low">Low</option>
+                                        <option value="medium" selected>Medium</option>
+                                        <option value="high">High</option>
+                                        <option value="urgent">Urgent</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="due_date">Due Date</label>
+                                    <input type="date" class="form-control" id="due_date" name="due_date" 
+                                           value="{{ today|date:'Y-m-d' }}">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="estimated_hours">Estimated Hours</label>
+                                    <input type="number" step="0.5" class="form-control" id="estimated_hours" 
+                                           name="estimated_hours" placeholder="e.g., 2.5">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Location Details -->
+                        <div class="row mt-4">
+                            <div class="col-md-12">
+                                <h5 class="text-success mb-3">Location Details</h5>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="block">Block/Building</label>
+                                    <input type="text" class="form-control" id="block" name="block" 
+                                           placeholder="e.g., Block A" value="{{ complaint.block|default:'' }}">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="floor">Floor</label>
+                                    <input type="text" class="form-control" id="floor" name="floor" 
+                                           placeholder="e.g., 2nd Floor" value="{{ complaint.floor|default:'' }}">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="room_number">Room Number</label>
+                                    <input type="text" class="form-control" id="room_number" name="room_number" 
+                                           placeholder="e.g., 204" value="{{ complaint.room_number|default:'' }}">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Assign to Professional -->
+                        <div class="row mt-4">
+                            <div class="col-md-12">
+                                <h5 class="text-success mb-3">Assign To</h5>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="professional">Select Professional <span class="text-danger">*</span></label>
+                                    <select class="form-control" id="professional" name="professional" required>
+                                        <option value="">Choose a professional...</option>
+                                        {% for professional in professionals %}
+                                            <option value="{{ professional.id }}">
+                                                   {{ professional.get_full_name|default:professional.username }}
+                                                   {% if professional.professional_profile.specialization %}
+                                                       {{ professional.professional_profile.specialization }}
+                                                       {% endif %}
+                                            </option>
+                                        {% endfor %}
+
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="assigned_by">Assigned By</label>
+                                    <input type="text" class="form-control" id="assigned_by"
+                                         value="{{ request.user.get_full_name|default:request.user.username }}" readonly>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Additional Notes -->
+                        <div class="row mt-3">
+                            <div class="col-md-12">
+                                <div class="form-group">
+                                    <label for="notes">Additional Notes / Instructions</label>
+                                    <textarea class="form-control" id="notes" name="notes" 
+                                              rows="2" placeholder="Any special instructions for the professional..."></textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Hidden Fields -->
+                        <input type="hidden" name="complaint_id" value="{{ complaint.id }}">
+                    </div>
+
+                    <div class="card-footer">
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-check-circle mr-2"></i>Assign Task
+                        </button>
+                        <a href="{% url 'hostelapp:task_list' %}" class="btn btn-secondary ml-2">
+                            <i class="fas fa-times mr-2"></i>Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Available Professionals Card -->
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-success">
+                    <h3 class="card-title">
+                        <i class="fas fa-users mr-2"></i>
+                        Available Professionals
+                    </h3>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Specialization</th>
+                                <th>Current Tasks</th>
+                                <th>Status</th>
+                                <th>Contact</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+    {% for professional in professionals %}
+    <tr>
+        <td>
+            {% if professional.get_full_name %}
+                {{ professional.get_full_name }}
+            {% elif professional.user and professional.user.get_full_name %}
+                {{ professional.user.get_full_name }}
+            {% elif professional.user %}
+                {{ professional.user.username }}
+            {% else %}
+                {{ professional.username }}
+            {% endif %}
+        </td>
+        <td>
+            <span class="badge badge-info">
+                {% if professional.specialization %}
+                    {{ professional.specialization }}
+                {% elif professional.professional_profile and professional.professional_profile.specialization %}
+                    {{ professional.professional_profile.specialization }}
+                {% else %}
+                    General
+                {% endif %}
+            </span>
+        </td>
+        <td>
+            <span class="badge badge-{% if professional.current_workload > 3 %}danger{% elif professional.current_workload > 1 %}warning{% else %}success{% endif %}">
+                {% if professional.current_workload %}
+                    {{ professional.current_workload }} tasks
+                {% elif professional.professional_profile and professional.professional_profile.current_workload %}
+                    {{ professional.professional_profile.current_workload }} tasks
+                {% else %}
+                    0 tasks
+                {% endif %}
+            </span>
+        </td>
+        <td>
+            {% if professional.is_available %}
+                <span class="badge badge-success">Available</span>
+            {% elif professional.professional_profile and professional.professional_profile.is_available %}
+                <span class="badge badge-success">Available</span>
+            {% else %}
+                <span class="badge badge-secondary">Busy</span>
+            {% endif %}
+        </td>
+        <td>
+            <i class="fas fa-phone mr-1"></i>
+            {% if professional.phone %}
+                {{ professional.phone }}
+            {% elif professional.professional_profile and professional.professional_profile.phone %}
+                {{ professional.professional_profile.phone }}
+            {% else %}
+                N/A
+            {% endif %}
+        </td>
+    </tr>
+    {% empty %}
+    <tr>
+        <td colspan="5" class="text-center">No professionals found</td>
+    </tr>
+    {% endfor %}
+</tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Set minimum date for due date to today
+    var today = new Date().toISOString().split('T')[0];
+    document.getElementById('due_date').setAttribute('min', today);
+
+    // Auto-fill form if coming from a complaint
+    {% if complaint %}
+    $('#title').val('{{ complaint.title|escapejs }}');
+    $('#description').val('{{ complaint.description|escapejs }}');
+    $('#category').val('{{ complaint.category|default:"" }}');
+    $('#priority').val('{{ complaint.priority|default:"medium" }}');
+    $('#block').val('{{ complaint.block|default:"" }}');
+    $('#floor').val('{{ complaint.floor|default:"" }}');
+    $('#room_number').val('{{ complaint.room_number|default:"" }}');
+    {% endif %}
+
+    // Show/hide based on professional selection
+    $('#professional').change(function() {
+        if($(this).val()) {
+            // Optional: Show more details about selected professional
+            console.log('Selected professional: ' + $(this).find('option:selected').text());
+        }
+    });
+
+    // Form validation
+    $('form').submit(function(e) {
+        var title = $('#title').val().trim();
+        var description = $('#description').val().trim();
+        var professional = $('#professional').val();
+
+        if(!title) {
+            e.preventDefault();
+            alert('Please enter a task title');
+            return false;
+        }
+        if(!description) {
+            e.preventDefault();
+            alert('Please enter a task description');
+            return false;
+        }
+        if(!professional) {
+            e.preventDefault();
+            alert('Please select a professional to assign this task to');
+            return false;
+        }
+    });
+});
+</script>
+{% endblock %}

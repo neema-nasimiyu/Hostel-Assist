@@ -1,88 +1,105 @@
-{% extends "base.html" %}
+{% extends 'base.html' %}
 
-{% block title %}Create Specialist Account{% endblock %}
+{% if debug_info %}
+<div style="background: #f0f0f0; padding: 10px; margin: 10px; border: 1px solid #ccc;">
+    <h3>Debug: User Profiles</h3>
+    <table border="1">
+        <tr>
+            <th>Username</th>
+            <th>User Type</th>
+            <th>Specialization</th>
+        </tr>
+        {% for item in debug_info %}
+        <tr>
+            <td>{{ item.username }}</td>
+            <td><strong>{{ item.user_type }}</strong></td>
+            <td>{{ item.specialization }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+{% endif %}
 
 {% block content %}
 <div class="container mt-4">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card">
-                <div class="card-header bg-success text-white">
-                    <h4 class="mb-0">Create Specialist Account</h4>
-                </div>
-                <div class="card-body">
-                    {% if messages %}
-                        {% for message in messages %}
-                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                                {{ message }}
-                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                            </div>
-                        {% endfor %}
-                    {% endif %}
-                    
-                    <form method="post">
-                        {% csrf_token %}
-                        
-                        <h5 class="mb-3">Login Credentials</h5>
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="username" class="form-label">Username</label>
-                                <input type="text" class="form-control" id="username" name="username" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="password" class="form-label">Password</label>
-                                <input type="password" class="form-control" id="password" name="password" required>
-                            </div>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="email" class="form-label">Email</label>
-                            <input type="email" class="form-control" id="email" name="email" required>
-                        </div>
-                        
-                        <h5 class="mb-3 mt-4">Professional Information</h5>
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="full_name" class="form-label">Full Name</label>
-                                <input type="text" class="form-control" id="full_name" name="full_name" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="specialization" class="form-label">Specialization</label>
-                                <select class="form-control" id="specialization" name="specialization" required>
-                                    <option value="">Select Specialization</option>
-                                    <option value="Counselor">Counselor</option>
-                                    <option value="Maintenance">Maintenance</option>
-                                    <option value="Healthcare">Healthcare</option>
-                                    <option value="Academic Advisor">Academic Advisor</option>
-                                    <option value="Career Counselor">Career Counselor</option>
-                                </select>
-                            </div>
-                        </div>
-                        
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="qualification" class="form-label">Qualification</label>
-                                <input type="text" class="form-control" id="qualification" name="qualification" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="experience_years" class="form-label">Years of Experience</label>
-                                <input type="number" class="form-control" id="experience_years" name="experience_years" required>
-                            </div>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="phone_number" class="form-label">Phone Number</label>
-                            <input type="text" class="form-control" id="phone_number" name="phone_number" required>
-                        </div>
-                        
-                        <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-success">Create Account</button>
-                            <a href="{% url 'hostelapp:admin_dashboard' %}" class="btn btn-secondary">Back to Dashboard</a>
-                        </div>
-                    </form>
-                </div>
+    <h2>Create Specialist Account</h2>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
+        {% endfor %}
+    {% endif %}
+
+    <form method="POST" action="{% url 'hostelapp:create_professional_account' %}">
+        {% csrf_token %}
+
+        <h3>Login Credentials</h3>
+
+        <div class="mb-3">
+            <label for="username" class="form-label">Username *</label>
+            <input type="text" class="form-control" id="username" name="username"
+                   value="{{ username|default:'' }}" required>
         </div>
-    </div>
+
+        <div class="mb-3">
+            <label for="password" class="form-label">Password *</label>
+            <input type="password" class="form-control" id="password" name="password"
+                   value="{{ password|default:'' }}" required>
+        </div>
+
+        <div class="mb-3">
+            <label for="email" class="form-label">Email *</label>
+            <input type="email" class="form-control" id="email" name="email"
+                   value="{{ email|default:'' }}" required>
+        </div>
+
+        <h3>Professional Information</h3>
+
+        <div class="mb-3">
+            <label for="full_name" class="form-label">Full Name *</label>
+            <input type="text" class="form-control" id="full_name" name="full_name"
+                   value="{{ full_name|default:'' }}" placeholder="Enter full name" required>
+            <small class="text-muted">Enter your complete name</small>
+        </div>
+
+        <div class="mb-3">
+            <label for="specialization" class="form-label">Specialization *</label>
+            <select class="form-control" id="specialization" name="specialization" required>
+                <option value="">Select Specialization</option>
+                <option value="plumber" {% if specialization == 'plumber' %}selected{% endif %}>Plumber</option>
+                <option value="electrician" {% if specialization == 'electrician' %}selected{% endif %}>Electrician</option>
+                <option value="carpenter" {% if specialization == 'carpenter' %}selected{% endif %}>Carpenter</option>
+                <option value="painter" {% if specialization == 'painter' %}selected{% endif %}>Painter</option>
+                <option value="cleaner" {% if specialization == 'cleaner' %}selected{% endif %}>Cleaner</option>
+                <option value="other" {% if specialization == 'other' %}selected{% endif %}>Other</option>
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label for="qualification" class="form-label">Qualification</label>
+            <input type="text" class="form-control" id="qualification" name="qualification"
+                   value="{{ qualification|default:'' }}" placeholder="e.g., Diploma, Certificate">
+        </div>
+
+        <div class="mb-3">
+            <label for="years_experience" class="form-label">Years of Experience</label>
+            <input type="number" class="form-control" id="years_experience" name="years_experience"
+                   value="{{ years_experience|default:'' }}" placeholder="e.g., 5" min="0">
+        </div>
+
+        <div class="mb-3">
+            <label for="phone_number" class="form-label">Phone Number</label>
+            <input type="text" class="form-control" id="phone_number" name="phone_number"
+                   value="{{ phone_number|default:'' }}" placeholder="e.g., 0712345678">
+        </div>
+
+        <div class="mt-4">
+            <button type="submit" class="btn btn-primary">Create Account</button>
+            <a href="{% url 'hostelapp:admin_dashboard' %}" class="btn btn-secondary">Back to Dashboard</a>
+        </div>
+    </form>
 </div>
 {% endblock %}

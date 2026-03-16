@@ -13,6 +13,8 @@
   <!-- Theme style -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/admin-lte/3.2.0/css/adminlte.min.css">
   <!-- Custom CSS for White & Green Theme -->
+
+
   <style>
     :root {
       --primary-green: #064521;
@@ -490,6 +492,7 @@
     }
   </style>
   {% block extra_css %}{% endblock %}
+  {% load custom_filters %}
 <!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -497,6 +500,7 @@
 <div class="wrapper">
 
   <!-- Navbar -->
+{% block navigation %}
   <nav class="main-header navbar navbar-expand navbar-white navbar-light">
     <!-- Left navbar links -->
  <!-- Left navbar links -->
@@ -528,58 +532,68 @@
         </div>
       </li>
 
-      <!-- User Menu -->
-      <li class="nav-item dropdown">
-        <a class="nav-link" data-toggle="dropdown" href="#">
-          <i class="fas fa-user-circle"></i>
-          <span class="d-none d-sm-inline ml-1">{{ user.get_full_name|default:user.username }}</span>
-        </a>
-        <div class="dropdown-menu dropdown-menu-right">
-          <a href="#" class="dropdown-item">
-            <i class="fas fa-user text-green mr-2"></i> Profile
-          </a>
-          <a href="#" class="dropdown-item">
-            <i class="fas fa-cog text-green mr-2"></i> Settings
-          </a>
-          <div class="dropdown-divider"></div>
-          <a href="{% url 'hostelapp:logout' %}" class="dropdown-item">
-            <i class="fas fa-sign-out-alt text-green mr-2"></i> Logout
-          </a>
-        </div>
-      </li>
-    </ul>
-  </nav>
+     <!-- User Menu -->
+<li class="nav-item dropdown">
+  <a class="nav-link" data-toggle="dropdown" href="#">
+    <i class="fas fa-user-circle"></i>
+    <span class="d-none d-sm-inline ml-1">
+      {% if user and user.is_authenticated %}
+        {{ user.get_full_name|default:user.username }}
+      {% else %}
+        Guest
+      {% endif %}
+    </span>
+  </a>
+  <div class="dropdown-menu dropdown-menu-right">
+    {% if user and user.is_authenticated %}
+      <a href="#" class="dropdown-item">
+        <i class="fas fa-user text-green mr-2"></i> Profile
+      </a>
+      <a href="#" class="dropdown-item">
+        <i class="fas fa-cog text-green mr-2"></i> Settings
+      </a>
+      <div class="dropdown-divider"></div>
+      <a href="{% url 'hostelapp:logout' %}" class="dropdown-item">
+        <i class="fas fa-sign-out-alt text-green mr-2"></i> Logout
+      </a>
+    {% else %}
+      <a href="{% url 'hostelapp:login' %}" class="dropdown-item">
+        <i class="fas fa-sign-in-alt text-green mr-2"></i> Login
+      </a>
+    {% endif %}
+  </div>
+</li>
   <!-- /.navbar -->
 
   <!-- Main Sidebar Container -->
   <aside class="main-sidebar sidebar-light elevation-4">
-    <!-- Brand Logo -->
+
    <!-- Brand Logo -->
 <a href="{% url 'hostelapp:dashboard' %}" class="brand-link">
   <img src="https://cdnjs.cloudflare.com/ajax/libs/admin-lte/3.2.0/img/AdminLTELogo.png" alt="Logo" class="brand-image img-circle elevation-3" style="opacity: .8; background-color: var(--light-green);">
   <span class="brand-text font-weight-light">Hostel Assist</span>
 </a>
 
-    <!-- Sidebar -->
-    <div class="sidebar">
-      <!-- Sidebar user panel (optional) -->
-      <div class="user-panel mt-3 pb-3 mb-3 d-flex">
-        <div class="image">
-          <img src="https://cdnjs.cloudflare.com/ajax/libs/admin-lte/3.2.0/img/avatar.png" class="img-circle elevation-2" alt="User Image" style="border: 2px solid var(--primary-green);">
-        </div>
-        <div class="info">
-          <a href="#" class="d-block">{{ user.get_full_name|default:user.username }}</a>
-          <small class="text-green">
-            {% if user.is_staff %}
-              <i class="fas fa-shield-alt mr-1"></i> Administrator
-            {% elif user.specialist_profile %}
-              <i class="fas fa-tools mr-1"></i> Specialist
-            {% else %}
-              <i class="fas fa-user-graduate mr-1"></i> Student
-            {% endif %}
-          </small>
-        </div>
-      </div>
+  <!-- Sidebar -->
+
+    <div class="info">
+  <a href="#" class="d-block">{{ user.get_full_name|default:user.username|default:"Guest" }}</a>
+  <small class="text-green">
+    {% if user and user.is_authenticated %}
+      {% if user.is_staff %}
+        <i class="fas fa-shield-alt mr-1"></i> Administrator
+      {% elif user|has_attr:'profile' and user.profile.user_type == 'specialist' %}
+        <i class="fas fa-tools mr-1"></i> Specialist
+      {% elif user|has_attr:'profile' and user.profile.user_type == 'student' %}
+        <i class="fas fa-user-graduate mr-1"></i> Student
+      {% else %}
+        <i class="fas fa-user mr-1"></i> User
+      {% endif %}
+    {% else %}
+      <i class="fas fa-user mr-1"></i> Guest
+    {% endif %}
+  </small>
+</div>
 
       <!-- Sidebar Menu -->
       <nav class="mt-2">
@@ -602,11 +616,11 @@
     </div>
     <!-- /.sidebar -->
   </aside>
+{% endblock %}
 
   <!-- Content Wrapper. Contains page content -->
   <div class="content-wrapper">
-    <!-- Content Header (Page header) -->
-   <!-- Content Header (Page header) -->
+
 <div class="content-header">
   <div class="container-fluid">
     <div class="row mb-2">
@@ -628,7 +642,7 @@
   </div><!-- /.container-fluid -->
 </div>
 <!-- /.content-header -->
-    <!-- /.content-header -->
+
 
     <!-- Main content -->
     <section class="content">

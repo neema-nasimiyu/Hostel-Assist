@@ -13,66 +13,87 @@
                 <div class="card-body">
                     {% if messages %}
                         {% for message in messages %}
-                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                            <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+                                <i class="fas fa-{% if message.tags == 'success' %}check-circle{% else %}exclamation-circle{% endif %} mr-2"></i>
                                 {{ message }}
                                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                             </div>
                         {% endfor %}
                     {% endif %}
-                    
+
                     <form method="post">
                         {% csrf_token %}
-                        
+
                         <h5 class="mb-3">Login Credentials</h5>
                         <div class="row mb-3">
                             <div class="col-md-6">
-                                <label for="username" class="form-label">Username</label>
-                                <input type="text" class="form-control" id="username" name="username" required>
+                                <label for="username" class="form-label">Username <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="username" name="username" required
+                                       value="{{ request.POST.username }}">
                             </div>
                             <div class="col-md-6">
-                                <label for="password" class="form-label">Password</label>
+                                <label for="password" class="form-label">Password <span class="text-danger">*</span></label>
                                 <input type="password" class="form-control" id="password" name="password" required>
                             </div>
                         </div>
-                        
+
                         <div class="mb-3">
-                            <label for="email" class="form-label">Email</label>
-                            <input type="email" class="form-control" id="email" name="email" required>
+                            <label for="email" class="form-label">Email <span class="text-danger">*</span></label>
+                            <input type="email" class="form-control" id="email" name="email" required
+                                   value="{{ request.POST.email }}">
                         </div>
-                        
+
                         <h5 class="mb-3 mt-4">Personal Information</h5>
                         <div class="row mb-3">
                             <div class="col-md-6">
-                                <label for="full_name" class="form-label">Full Name</label>
-                                <input type="text" class="form-control" id="full_name" name="full_name" required>
+                                <label for="full_name" class="form-label">Full Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="full_name" name="full_name" required
+                                       value="{{ request.POST.full_name }}">
                             </div>
                             <div class="col-md-6">
-                                <label for="student_id" class="form-label">Student ID</label>
-                                <input type="text" class="form-control" id="student_id" name="student_id" required>
+                                <label for="student_id" class="form-label">Student ID <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="student_id" name="student_id" required
+                                       value="{{ request.POST.student_id }}">
                             </div>
                         </div>
-                        
+
                         <div class="row mb-3">
                             <div class="col-md-6">
-                                <label for="room_number" class="form-label">Room Number</label>
-                                <input type="text" class="form-control" id="room_number" name="room_number" required>
+                                <label for="room_number" class="form-label">Room Number <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="room_number" name="room_number" required
+                                       value="{{ request.POST.room_number }}">
                             </div>
                             <div class="col-md-6">
                                 <label for="phone_number" class="form-label">Phone Number</label>
-                                <input type="text" class="form-control" id="phone_number" name="phone_number" required>
+                                <input type="text" class="form-control" id="phone_number" name="phone_number"
+                                       value="{{ request.POST.phone_number }}" maxlength = "10">
                             </div>
                         </div>
-                        
+
+                        <!-- NEW: Hostel Name Field -->
                         <div class="mb-3">
-                            <label for="department" class="form-label">Department</label>
+                            <label for="hostel_name" class="form-label">Hostel Name <span class="text-danger">*</span></label>
+                            <select class="form-control" id="hostel_name" name="hostel_name" required>
+                                <option value="">Select Hostel</option>
+                                <option value="Lumumba" {% if request.POST.hostel_name == "Lumumba" %}selected{% endif %}>Lumumba</option>
+                                <option value="Kenyatta" {% if request.POST.hostel_name == "Kenyatta" %}selected{% endif %}>Kenyatta</option>
+                                <option value="Jomo" {% if request.POST.hostel_name == "Jomo" %}selected{% endif %}>Jomo</option>
+                                <option value="Nkrumah" {% if request.POST.hostel_name == "Nkrumah" %}selected{% endif %}>Nkrumah</option>
+                                <option value="Moi" {% if request.POST.hostel_name == "Moi" %}selected{% endif %}>Moi</option>
+                                <option value="Other" {% if request.POST.hostel_name == "Other" %}selected{% endif %}>Other</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="department" class="form-label">Department <span class="text-danger">*</span></label>
                             <select class="form-control" id="department" name="department" required>
                                 <option value="">Select Department</option>
-                                <option value="Computer Science">Computer Science</option>
-                                <option value="Engineering">Engineering</option>
-                                <option value="Business">Business</option>
-                                <option value="Mathematics">Mathematics</option>
-                                <option value="Physics">Physics</option>
-                                <option value="Chemistry">Chemistry</option>
+                                <option value="Computer Science" {% if request.POST.department == "Computer Science" %}selected{% endif %}>Computer Science</option>
+                                <option value="Engineering" {% if request.POST.department == "Engineering" %}selected{% endif %}>Engineering</option>
+                                <option value="Business" {% if request.POST.department == "Business" %}selected{% endif %}>Business</option>
+                                <option value="Mathematics" {% if request.POST.department == "Mathematics" %}selected{% endif %}>Mathematics</option>
+                                <option value="Physics" {% if request.POST.department == "Physics" %}selected{% endif %}>Physics</option>
+                                <option value="Chemistry" {% if request.POST.department == "Chemistry" %}selected{% endif %}>Chemistry</option>
                             </select>
                         </div>
                         

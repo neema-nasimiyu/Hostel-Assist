@@ -99,38 +99,54 @@
                             <th>Action</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        {% for complaint in my_complaints %}
-                        <tr>
-                            <td>{{ complaint.title|truncatechars:30 }}</td>
-                            <td>
-                                <span class="badge badge-{% if complaint.status == 'completed' %}success{% elif complaint.status == 'pending' %}warning{% elif complaint.status == 'in_progress' %}info{% elif complaint.status == 'assigned' %}primary{% else %}secondary{% endif %}">
-                                    {{ complaint.get_status_display }}
-                                </span>
-                            </td>
-                            <td>
-                                <span class="badge badge-{% if complaint.priority == 'high' %}danger{% elif complaint.priority == 'medium' %}warning{% else %}info{% endif %}">
-                                    {{ complaint.get_priority_display }}
-                                </span>
-                            </td>
-                            <td>{{ complaint.assigned_to.get_full_name|default:complaint.assigned_to.username|default:"Not assigned yet" }}</td>
-                            <td>{{ complaint.created_at|date:"M d, Y" }}</td>
-                            <td>{{ complaint.updated_at|date:"M d, Y" }}</td>
-                            <td>
-                                <a href="{% url 'hostelapp:complaint_detail' complaint.id %}" class="btn btn-info btn-sm">
-                                    <i class="fas fa-eye"></i> View
-                                </a>
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="7" class="text-center">
-                                No complaints found. 
-                                <a href="{% url 'hostelapp:create_complaint' %}">Create your first complaint</a>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
+                   <tbody>
+    {% for complaint in my_complaints %}
+    <tr>
+        <td>{{ complaint.title|truncatechars:30 }}</td>
+        <td>
+            <span class="badge
+                {% if complaint.status == 'completed' %}badge-success
+                {% elif complaint.status == 'pending' %}badge-warning
+                {% elif complaint.status == 'in_progress' %}badge-info
+                {% elif complaint.status == 'assigned' %}badge-primary
+                {% else %}badge-secondary
+                {% endif %}">
+                {{ complaint.get_status_display }}
+            </span>
+        </td>
+        <td>
+            <span class="badge
+                {% if complaint.priority == 'high' %}badge-danger
+                {% elif complaint.priority == 'medium' %}badge-warning
+                {% else %}badge-info
+                {% endif %}">
+                {{ complaint.get_priority_display }}
+            </span>
+        </td>
+        <td>
+            {% if complaint.assigned_to %}
+                {{ complaint.assigned_to.get_full_name|default:complaint.assigned_to.username }}
+            {% else %}
+                Not assigned yet
+            {% endif %}
+        </td>
+        <td>{{ complaint.created_at|date:"M d, Y" }}</td>
+        <td>{{ complaint.updated_at|date:"M d, Y" }}</td>
+        <td>
+            <a href="{% url 'hostelapp:complaint_detail' complaint.id %}" class="btn btn-info btn-sm">
+                <i class="fas fa-eye"></i> View
+            </a>
+        </td>
+    </tr>
+    {% empty %}
+    <tr>
+        <td colspan="7" class="text-center">
+            No complaints found.
+            <a href="{% url 'hostelapp:create_complaint' %}">Create your first complaint</a>
+        </td>
+    </tr>
+    {% endfor %}
+</tbody>
                 </table>
             </div>
         </div>

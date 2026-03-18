@@ -71,4 +71,11 @@ urlpatterns = [
 
    path('submit-complaint/', views.submit_complaint, name='submit_complaint'),
    path('my-complaints/', views.my_complaints, name='my_complaints'),
+
+    path('users/', views.user_list, name='user_list'),
+    path('user/<int:user_id>/', views.user_detail, name='user_detail'),
+    path('user/<int:user_id>/edit/', views.edit_user, name='edit_user'),
+    path('user/<int:user_id>/delete/', views.delete_user, name='delete_user'),
+
+    path('user/<int:user_id>/reset-password/', views.reset_password, name='reset_password'),
 ]

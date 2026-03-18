@@ -107,10 +107,6 @@ STATICFILES_DIRS = [
     BASE_DIR / 'static',
 ]
 
-# Authentication backends - ADD THIS SECTION
-#AUTHENTICATION_BACKENDS = [
-   # 'hostelapp.backends.RoleBasedAuthBackend',  # Your custom role-based backend
-   # 'django.contrib.auth.backends.ModelBackend',  # Default Django backend
 
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
@@ -120,3 +116,6 @@ AUTHENTICATION_BACKENDS = [
 LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/dashboard/'
 LOGOUT_REDIRECT_URL = '/login/'
+
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'  # Prints emails to console
+DEFAULT_FROM_EMAIL = 'noreply@hostelassist.com'

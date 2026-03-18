@@ -15,7 +15,7 @@ class UserProfile(models.Model):
     phone_number = models.CharField(max_length=15, blank=True)
     room_number = models.CharField(max_length=10, blank=True)  # For students
     specialization = models.CharField(max_length=100, blank=True)  # For professionals (electrician, plumber, etc.)
-    hostel_name = models.CharField(max_length=50, blank=True)
+    hostel_name = models.CharField(max_length=50, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

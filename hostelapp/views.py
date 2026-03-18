@@ -1,8 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth import authenticate, login
-from django.contrib.auth.models import User
-from django.contrib import messages
 from django.db.models import Count, Q
 from django.utils import timezone
 from django.http import HttpResponse
@@ -24,9 +22,20 @@ from reportlab.lib.units import inch
 from .models import UserProfile, Complaint, ComplaintUpdate
 from .forms import ComplaintForm, UserCreationForm, ComplaintAssignForm
 
-from django.shortcuts import render, redirect
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib.auth.models import User
 from django.contrib import messages
-from .forms import StudentRegistrationForm, ProfessionalRegistrationForm
+from .models import UserProfile
+from django.contrib.auth.decorators import login_required
+
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.http import urlsafe_base64_encode
+from django.utils.encoding import force_bytes
+from django.core.mail import send_mail
+from django.conf import settings
+import random
+import string
+
 
 
 
@@ -463,15 +472,47 @@ def create_user(request):
 @login_required
 @user_passes_test(is_admin)
 def user_list(request):
-    students = User.objects.filter(profile__user_type='student')
-    professionals = User.objects.filter(profile__user_type='professional')
-    admins = User.objects.filter(Q(is_staff=True) | Q(is_superuser=True))
+    # Get filter parameters
+    user_type = request.GET.get('type', '')
+    search_query = request.GET.get('search', '')
 
-    return render(request, 'hostelapp/user_list.html', {
-        'students': students,
-        'professionals': professionals,
-        'admins': admins
-    })
+    # Base queryset
+    profiles = UserProfile.objects.select_related('user').all()
+
+    # Apply filters
+    if user_type:
+        profiles = profiles.filter(user_type=user_type)
+
+    if search_query:
+        profiles = profiles.filter(
+            Q(user__username__icontains=search_query) |
+            Q(user__first_name__icontains=search_query) |
+            Q(user__last_name__icontains=search_query) |
+            Q(user__email__icontains=search_query) |
+            Q(room_number__icontains=search_query)
+        )
+
+    # Pagination
+    paginator = Paginator(profiles, 20)  # Show 20 users per page
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    # Statistics
+    total_users = UserProfile.objects.count()
+    student_count = UserProfile.objects.filter(user_type='student').count()
+    professional_count = UserProfile.objects.filter(user_type='professional').count()
+    admin_count = UserProfile.objects.filter(user_type='admin').count()
+
+    context = {
+        'users': page_obj,
+        'total_users': total_users,
+        'student_count': student_count,
+        'professional_count': professional_count,
+        'admin_count': admin_count,
+        'current_type': user_type,
+        'search_query': search_query,
+    }
+    return render(request, 'hostelapp/user_list.html', context)
 
 
 @login_required
@@ -702,7 +743,7 @@ def create_professional_account(request):
                 last_name=last_name
             )
 
-            # IMPORTANT FIX: Explicitly set user_type to 'professional'
+
             # Use get_or_create to handle existing profiles
             profile, created = UserProfile.objects.get_or_create(
                 user=user,
@@ -766,18 +807,27 @@ def bulk_upload_students(request):
             decoded_file = csv_file.read().decode('utf-8').splitlines()
             reader = csv.DictReader(decoded_file)
 
+            print(f"CSV Headers: {reader.fieldnames}")  # Debug: see what headers are in the CSV
+
             success_count = 0
             error_count = 0
             errors = []
 
             for row_num, row in enumerate(reader, start=2):
                 try:
+                    # Extract data with proper stripping
                     username = row.get('username', '').strip()
                     email = row.get('email', '').strip()
                     first_name = row.get('first_name', '').strip()
                     last_name = row.get('last_name', '').strip()
+
+                    # IMPORTANT: Make sure these column names match your CSV exactly
                     room_number = row.get('room_number', '').strip()
                     phone_number = row.get('phone_number', '').strip()
+                    hostel_name = row.get('hostel_name', '').strip()
+
+                    # Debug print
+                    print(f"Row {row_num}: room='{room_number}', phone='{phone_number}', hostel='{hostel_name}'")
 
                     # Validate required fields
                     if not username or not email:
@@ -800,18 +850,31 @@ def bulk_upload_students(request):
                     user = User.objects.create_user(
                         username=username,
                         email=email,
-                        password='Student@123',  # Default password
+                        password='Student@123',
                         first_name=first_name,
                         last_name=last_name
                     )
 
-                    # Create student profile
-                    UserProfile.objects.create(
-                        user=user,
-                        user_type='student',
-                        room_number=room_number,
-                        phone_number=phone_number
-                    )
+                    # Create student profile - ONLY set fields if they have values
+                    profile_data = {
+                        'user': user,
+                        'user_type': 'student',
+                    }
+
+                    # Only add fields if they have actual content
+                    if room_number and room_number.lower() != 'none':
+                        profile_data['room_number'] = room_number
+                    if phone_number and phone_number.lower() != 'none':
+                        profile_data['phone_number'] = phone_number
+                    if hostel_name and hostel_name.lower() != 'none':
+                        profile_data['hostel_name'] = hostel_name
+
+                    profile = UserProfile.objects.create(**profile_data)
+
+                    # Verify the data was saved
+                    print(
+                        f"Created profile for {username}: room='{profile.room_number}', phone='{profile.phone_number}', hostel='{profile.hostel_name}'")
+
                     success_count += 1
 
                 except Exception as e:
@@ -832,7 +895,6 @@ def bulk_upload_students(request):
 
     return redirect('hostelapp:admin_dashboard')
 
-
 @login_required
 @user_passes_test(is_admin)
 def download_sample_csv(request):
@@ -841,12 +903,14 @@ def download_sample_csv(request):
     response['Content-Disposition'] = 'attachment; filename="sample_students.csv"'
 
     writer = csv.writer(response)
-    writer.writerow(['username', 'email', 'first_name', 'last_name', 'room_number', 'phone_number'])
-    writer.writerow(['john.doe', 'john@example.com', 'John', 'Doe', 'A101', '1234567890'])
-    writer.writerow(['jane.smith', 'jane@example.com', 'Jane', 'Smith', 'B202', '0987654321'])
+    # Write headers matching your model fields
+    writer.writerow(['username', 'email', 'first_name', 'last_name', 'room_number', 'phone_number', 'hostel_name'])
+    # Write sample data
+    writer.writerow(['john.doe', 'john@example.com', 'John', 'Doe', 'A101', '1234567890', 'Liberty Hall'])
+    writer.writerow(['jane.smith', 'jane@example.com', 'Jane', 'Smith', 'B202', '0987654321', 'Independence Hall'])
+    writer.writerow(['bob.wilson', 'bob@example.com', 'Bob', 'Wilson', 'A105', '5551234567', 'Victory Hall'])
 
     return response
-
 
 # ==================== REPORT VIEWS ====================
 @login_required
@@ -1524,3 +1588,98 @@ def submit_complaint(request):
         form = ComplaintForm(user=request.user)
 
     return render(request, 'hostelapp/submit_complaint.html', {'form': form})
+
+
+@login_required
+@user_passes_test(is_admin)
+def user_detail(request, user_id):
+    """View user details"""
+    user = get_object_or_404(User, id=user_id)
+    profile = get_object_or_404(UserProfile, user=user)
+
+    context = {
+        'user_obj': user,
+        'profile': profile,
+    }
+    return render(request, 'hostelapp/user_detail.html', context)
+
+
+@login_required
+@user_passes_test(is_admin)
+def edit_user(request, user_id):
+    """Edit user details"""
+    user = get_object_or_404(User, id=user_id)
+    profile = get_object_or_404(UserProfile, user=user)
+
+    if request.method == 'POST':
+        # Update user fields
+        user.first_name = request.POST.get('first_name', user.first_name)
+        user.last_name = request.POST.get('last_name', user.last_name)
+        user.email = request.POST.get('email', user.email)
+        user.save()
+
+        # Update profile fields
+        profile.user_type = request.POST.get('user_type', profile.user_type)
+        profile.room_number = request.POST.get('room_number', profile.room_number)
+        profile.phone_number = request.POST.get('phone_number', profile.phone_number)
+        profile.hostel_name = request.POST.get('hostel_name', profile.hostel_name)
+        profile.save()
+
+        messages.success(request, f'User {user.username} updated successfully.')
+        return redirect('hostelapp:user_detail', user_id=user.id)
+
+    context = {
+        'user_obj': user,
+        'profile': profile,
+    }
+    return render(request, 'hostelapp/edit_user.html', context)
+
+
+@login_required
+@user_passes_test(is_admin)
+def delete_user(request, user_id):
+    """Delete a user"""
+    user = get_object_or_404(User, id=user_id)
+
+    if request.method == 'POST':
+        username = user.username
+        user.delete()
+        messages.success(request, f'User {username} deleted successfully.')
+        return redirect('hostelapp:user_list')
+
+    context = {
+        'user_obj': user
+    }
+    return render(request, 'hostelapp/confirm_delete.html', context)
+
+
+@login_required
+@user_passes_test(is_admin)
+def reset_password(request, user_id):
+    """Reset a user's password and send them a new temporary password"""
+    user = get_object_or_404(User, id=user_id)
+
+    if request.method == 'POST':
+        # Generate a random password
+        new_password = ''.join(random.choices(string.ascii_letters + string.digits, k=10))
+
+        # Set the new password
+        user.set_password(new_password)
+        user.save()
+
+        # Send email with new password
+        try:
+            send_mail(
+                'Password Reset - Hostel Assist',
+                f'Hello {user.get_full_name() or user.username},\n\nYour password has been reset by an administrator.\n\nNew password: {new_password}\n\nPlease login and change your password immediately.\n\nRegards,\nHostel Assist Team',
+                settings.DEFAULT_FROM_EMAIL,
+                [user.email],
+                fail_silently=False,
+            )
+            messages.success(request, f'Password reset successfully. New password sent to {user.email}')
+        except Exception as e:
+            messages.warning(request, f'Password reset but email could not be sent. New password: {new_password}')
+
+        return redirect('hostelapp:user_detail', user_id=user.id)
+
+    return redirect('hostelapp:user_detail', user_id=user.id)

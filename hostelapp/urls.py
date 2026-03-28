@@ -1,4 +1,4 @@
-from django.urls import path, include
+from django.urls import path, reverse_lazy
 from django.contrib.auth import views as auth_views
 from . import views
 from django.shortcuts import redirect
@@ -6,9 +6,9 @@ from django.shortcuts import redirect
 app_name = 'hostelapp'
 
 urlpatterns = [
-    # Authentication - USE THE CUSTOM VIEW INSTEAD OF DEFAULT LoginView
+    # Authentication
     path('login/', views.role_based_login, name='login'),
-    path('logout/', auth_views.LogoutView.as_view(next_page='login'), name='logout'),
+    path('logout/', views.custom_logout, name='logout'),
 
     # Role-specific dashboards
     path('admin-dashboard/', views.admin_dashboard, name='admin_dashboard'),
@@ -78,4 +78,9 @@ urlpatterns = [
     path('user/<int:user_id>/delete/', views.delete_user, name='delete_user'),
 
     path('user/<int:user_id>/reset-password/', views.reset_password, name='reset_password'),
+
+    path('reports/generate/', views.generate_report, name='generate_report'),
+    path('reports/download/pdf/', views.download_pdf_report, name='download_pdf_report'),
+
+    path('change-password/', views.change_password, name='change_password'),
 ]

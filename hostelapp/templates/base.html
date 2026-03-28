@@ -546,16 +546,20 @@
   </a>
   <div class="dropdown-menu dropdown-menu-right">
     {% if user and user.is_authenticated %}
-      <a href="#" class="dropdown-item">
+      <a href="{% url 'hostelapp:profile' %}" class="dropdown-item">
         <i class="fas fa-user text-green mr-2"></i> Profile
       </a>
-      <a href="#" class="dropdown-item">
-        <i class="fas fa-cog text-green mr-2"></i> Settings
+      <a href="{% url 'hostelapp:change_password' %}" class="dropdown-item">
+        <i class="fas fa-key text-green mr-2"></i> Change Password
       </a>
       <div class="dropdown-divider"></div>
-      <a href="{% url 'hostelapp:logout' %}" class="dropdown-item">
-        <i class="fas fa-sign-out-alt text-green mr-2"></i> Logout
-      </a>
+      <!-- Change this to a form for POST request -->
+      <form method="post" action="{% url 'hostelapp:logout' %}" style="display: inline;">
+        {% csrf_token %}
+        <button type="submit" class="dropdown-item" style="background: none; border: none; width: 100%; text-align: left;">
+          <i class="fas fa-sign-out-alt text-green mr-2"></i> Logout
+        </button>
+      </form>
     {% else %}
       <a href="{% url 'hostelapp:login' %}" class="dropdown-item">
         <i class="fas fa-sign-in-alt text-green mr-2"></i> Login
@@ -563,7 +567,8 @@
     {% endif %}
   </div>
 </li>
-  <!-- /.navbar -->
+
+        <!-- /.navbar -->
 
   <!-- Main Sidebar Container -->
   <aside class="main-sidebar sidebar-light elevation-4">

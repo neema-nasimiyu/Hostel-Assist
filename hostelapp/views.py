@@ -1,9 +1,4 @@
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required, user_passes_test
-from django.contrib.auth import authenticate, login
-from django.db.models import Count, Q
-from django.utils import timezone
-from django.http import HttpResponse
+from django.contrib.auth import authenticate, login, logout
 from django.core.paginator import Paginator
 from datetime import datetime, timedelta
 import csv
@@ -12,10 +7,11 @@ import logging
 
 # ReportLab imports for PDF
 from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import letter, A4
+from reportlab.lib.pagesizes import letter, A4, landscape
 from reportlab.lib import colors
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.enums import TA_CENTER
 from reportlab.lib.units import inch
 
 # Import your models
@@ -26,15 +22,22 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.models import User
 from django.contrib import messages
 from .models import UserProfile
-from django.contrib.auth.decorators import login_required
 
-from django.contrib.auth.tokens import default_token_generator
-from django.utils.http import urlsafe_base64_encode
-from django.utils.encoding import force_bytes
 from django.core.mail import send_mail
 from django.conf import settings
 import random
 import string
+
+from django.shortcuts import render
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.db.models import Count, Q
+from django.http import HttpResponse
+from django.utils import timezone
+from datetime import datetime
+import io
+
+from django.contrib.auth import update_session_auth_hash
+from django.contrib.auth.forms import PasswordChangeForm
 
 
 
@@ -203,6 +206,24 @@ def student_dashboard(request):
         'my_complaints': student_complaints.order_by('-created_at')[:10],
     }
     return render(request, 'dashboards/student_dashboard.html', context)
+
+
+@login_required
+def change_password(request):
+    """View for users to change their password"""
+    if request.method == 'POST':
+        form = PasswordChangeForm(request.user, request.POST)
+        if form.is_valid():
+            user = form.save()
+            update_session_auth_hash(request, user)
+            messages.success(request, 'Your password was successfully updated!')
+            return redirect('hostelapp:student_dashboard')  # This should work
+        else:
+            messages.error(request, 'Please correct the error below.')
+    else:
+        form = PasswordChangeForm(request.user)
+
+    return render(request, 'hostelapp/change_password.html', {'form': form})
 
 
 @login_required
@@ -912,16 +933,20 @@ def download_sample_csv(request):
 
     return response
 
+
 # ==================== REPORT VIEWS ====================
 @login_required
 @user_passes_test(is_admin)
 def generate_report(request):
+    """Generate and display HTML report"""
+    from django.db.models import Count
+
     # Get filter parameters
     date_from = request.GET.get('from')
     date_to = request.GET.get('to')
     status = request.GET.get('status')
 
-    complaints = Complaint.objects.all()
+    complaints = Complaint.objects.all().select_related('student', 'assigned_to')
 
     if date_from:
         complaints = complaints.filter(created_at__gte=date_from)
@@ -956,32 +981,21 @@ def generate_report(request):
 @login_required
 @user_passes_test(is_admin)
 def download_pdf_report(request):
-    # Create a file-like buffer to receive PDF data
-    buffer = io.BytesIO()
+    """Generate and download PDF report"""
+    # ... (your existing PDF code here)
 
-    # Create the PDF object
-    doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=72, leftMargin=72, topMargin=72, bottomMargin=72)
+# ==================== REPORT VIEWS ====================
+@login_required
+@user_passes_test(is_admin)
+def download_pdf_report(request):
+    """Generate and download PDF report"""
 
-    # Container for the 'Flowable' objects
-    elements = []
-
-    # Get styles
-    styles = getSampleStyleSheet()
-    title_style = styles['Heading1']
-    heading_style = styles['Heading2']
-    normal_style = styles['Normal']
-
-    # Title
-    elements.append(Paragraph('Hostel Assist - Complaint Report', title_style))
-    elements.append(Paragraph(f'Generated on: {datetime.now().strftime("%Y-%m-%d %H:%M")}', normal_style))
-    elements.append(Spacer(1, 0.2 * inch))
-
-    # Get filter parameters
+    # Get filter parameters (same as generate_report)
     date_from = request.GET.get('from')
     date_to = request.GET.get('to')
     status = request.GET.get('status')
 
-    complaints = Complaint.objects.all()
+    complaints = Complaint.objects.all().select_related('student', 'assigned_to')
 
     if date_from:
         complaints = complaints.filter(created_at__gte=date_from)
@@ -990,50 +1004,66 @@ def download_pdf_report(request):
     if status:
         complaints = complaints.filter(status=status)
 
+    # Create a file-like buffer to receive PDF data
+    buffer = io.BytesIO()
+
+    # Create the PDF object, using the buffer as its "file"
+    doc = SimpleDocTemplate(buffer, pagesize=landscape(letter))
+
+    # Container for the 'Flowable' objects
+    elements = []
+
+    # Get styles
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontSize=24,
+        alignment=TA_CENTER,
+        spaceAfter=30
+    )
+
+    # Title
+    title = Paragraph("Complaints Report", title_style)
+    elements.append(title)
+
+    # Report parameters
+    params_style = ParagraphStyle(
+        'Params',
+        parent=styles['Normal'],
+        fontSize=10,
+        spaceAfter=20
+    )
+
+    date_range = "All Time"
+    if date_from or date_to:
+        from_str = date_from if date_from else "Beginning"
+        to_str = date_to if date_to else "Present"
+        date_range = f"{from_str} to {to_str}"
+
+    status_str = status.capitalize() if status else "All Statuses"
+
+    params_text = f"<b>Date Range:</b> {date_range}<br/><b>Status:</b> {status_str}<br/><b>Generated:</b> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+    params = Paragraph(params_text, params_style)
+    elements.append(params)
+    elements.append(Spacer(1, 20))
+
     # Statistics
     total = complaints.count()
-    elements.append(Paragraph(f'Total Complaints: {total}', heading_style))
-    elements.append(Spacer(1, 0.2 * inch))
+    completed_count = complaints.filter(status='completed').count()
+    pending_count = complaints.filter(status='pending').count()
+    in_progress_count = complaints.filter(status='in_progress').count()
+    assigned_count = complaints.filter(status='assigned').count()
 
-    # Status breakdown
-    elements.append(Paragraph('Status Breakdown:', heading_style))
-    status_counts = complaints.values('status').annotate(count=Count('id'))
-    status_data = [['Status', 'Count']]
-    for item in status_counts:
-        status_data.append([item['status'], str(item['count'])])
+    # Statistics table
+    stats_data = [
+        ['Total Complaints', 'Completed', 'Pending', 'In Progress', 'Assigned'],
+        [str(total), str(completed_count), str(pending_count), str(in_progress_count), str(assigned_count)]
+    ]
 
-    status_table = Table(status_data)
-    status_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.green),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 14),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black)
-    ]))
-    elements.append(status_table)
-    elements.append(Spacer(1, 0.3 * inch))
-
-    # Complaints table
-    elements.append(Paragraph('Complaint Details:', heading_style))
-
-    # Prepare data for table
-    table_data = [['ID', 'Title', 'Student', 'Status', 'Priority', 'Created']]
-    for complaint in complaints[:50]:  # Limit to 50 for PDF
-        table_data.append([
-            str(complaint.id),
-            complaint.title[:30] + '...' if len(complaint.title) > 30 else complaint.title,
-            complaint.student.username,
-            complaint.status,
-            complaint.priority,
-            complaint.created_at.strftime('%Y-%m-%d')
-        ])
-
-    complaint_table = Table(table_data, colWidths=[0.5 * inch, 2 * inch, 1 * inch, 1 * inch, 1 * inch, 1.2 * inch])
-    complaint_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.green),
+    stats_table = Table(stats_data, colWidths=[100, 80, 80, 80, 80])
+    stats_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
@@ -1042,22 +1072,94 @@ def download_pdf_report(request):
         ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
         ('GRID', (0, 0), (-1, -1), 1, colors.black)
     ]))
+    elements.append(stats_table)
+    elements.append(Spacer(1, 30))
+
+    # Complaints table with assignment information
+    elements.append(Paragraph("Complaint Details", styles['Heading2']))
+    elements.append(Spacer(1, 10))
+
+    # Prepare table data - INCLUDING WHO ASSIGNED AND WHO COMPLETED
+    table_data = [
+        ['ID', 'Title', 'Student', 'Assigned By', 'Specialist', 'Status', 'Priority', 'Date']
+    ]
+
+    for complaint in complaints:
+        # Get who assigned the task (from ComplaintUpdate or assigned_by field)
+        assigned_by = "System"
+        assigned_update = complaint.updates.filter(
+            status_change='assigned'
+        ).first() if hasattr(complaint, 'updates') else None
+
+        if assigned_update and assigned_update.user:
+            assigned_by = assigned_update.user.get_full_name() or assigned_update.user.username
+
+        # Get who completed the task
+        completed_by = "Not Completed"
+        if complaint.status == 'completed':
+            completed_update = complaint.updates.filter(
+                status_change='completed'
+            ).first() if hasattr(complaint, 'updates') else None
+
+            if completed_update and completed_update.user:
+                completed_by = completed_update.user.get_full_name() or completed_update.user.username
+            elif complaint.assigned_to:
+                completed_by = complaint.assigned_to.get_full_name() or complaint.assigned_to.username
+
+        # If no assignment updates, use assigned_to
+        specialist_name = "Unassigned"
+        if complaint.assigned_to:
+            specialist_name = complaint.assigned_to.get_full_name() or complaint.assigned_to.username
+            if completed_by == "Not Completed" and specialist_name != "Unassigned":
+                completed_by = "In Progress"
+
+        # Add row with all information
+        table_data.append([
+            str(complaint.id),
+            complaint.title[:40] + "..." if len(complaint.title) > 40 else complaint.title,
+            complaint.student.get_full_name() or complaint.student.username,
+            assigned_by,
+            specialist_name,
+            complaint.get_status_display(),
+            complaint.get_priority_display(),
+            complaint.created_at.strftime('%Y-%m-%d')
+        ])
+
+    # Create the table with appropriate column widths
+    col_widths = [40, 120, 100, 100, 100, 80, 80, 80]
+    complaint_table = Table(table_data, colWidths=col_widths, repeatRows=1)
+    complaint_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 10),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+        ('FONTSIZE', (0, 1), (-1, -1), 8),
+        ('ALIGN', (0, 1), (0, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+    ]))
+
     elements.append(complaint_table)
 
-    # Build PDF
+    # Build the PDF
     doc.build(elements)
 
-    # Get the value of the buffer
+    # Get the value of the BytesIO buffer and return it as response
     pdf = buffer.getvalue()
     buffer.close()
 
-    # Create the HTTP response
+    # Create HTTP response
     response = HttpResponse(content_type='application/pdf')
     response[
-        'Content-Disposition'] = f'attachment; filename="complaint_report_{datetime.now().strftime("%Y%m%d_%H%M")}.pdf"'
+        'Content-Disposition'] = f'attachment; filename="complaints_report_{datetime.now().strftime("%Y%m%d_%H%M%S")}.pdf"'
     response.write(pdf)
 
     return response
+
+
 
 
 # ==================== PROFESSIONAL TASK MANAGEMENT ====================
@@ -1695,3 +1797,10 @@ def reset_password(request, user_id):
         return redirect('hostelapp:user_detail', user_id=user.id)
 
     return redirect('hostelapp:user_detail', user_id=user.id)
+
+
+def custom_logout(request):
+    """Custom logout view"""
+    logout(request)
+    messages.success(request, 'You have been successfully logged out.')
+    return redirect('hostelapp:login')
